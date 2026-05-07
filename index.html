@@ -963,12 +963,24 @@ async function fetchMetrics() {
   if (data.error) throw new Error(data.error);
 
   const ig = data.ig, fb = data.fb;
-  const igIns = ig.insights || [], fbIns = fb.insights || [];
+  const igIns = ig.insights || [];
+  const igInter = ig.interactions || [];
+  const fbIns = fb.insights || [];
 
   const igReachIns = igIns.find(i => i.name === 'reach');
-  const igImpIns = igIns.find(i => i.name === 'impressions');
-  const fbReachIns = fbIns.find(i => i.name === 'page_reach');
-  const fbImpIns = fbIns.find(i => i.name === 'page_impressions_organic');
+  const fbImpIns = fbIns.find(i => i.name === 'page_impressions_unique');
+  const fbEngIns = fbIns.find(i => i.name === 'page_post_engagements');
+
+  // IG interactions usan total_value en vez de values[]
+  function getTotalValue(interactions, name) {
+    const m = interactions.find(i => i.name === name);
+    return m?.total_value?.value || 0;
+  }
+
+  const igLikes = getTotalValue(igInter, 'likes');
+  const igComments = getTotalValue(igInter, 'comments');
+  const igSaves = getTotalValue(igInter, 'saves');
+  const igShares = getTotalValue(igInter, 'shares');
 
   LIVE_METRICS = {
     ig: {
@@ -976,20 +988,23 @@ async function fetchMetrics() {
       followersGrowth: 0,
       reach30: sumIns(igIns, 'reach') || 0,
       reachGrowth: calcGrowth(igReachIns?.values),
-      impressions30: sumIns(igIns, 'impressions') || 0,
-      impGrowth: calcGrowth(igImpIns?.values),
-      profileViews: sumIns(igIns, 'profile_views') || 0,
-      insightsByDay: { reach: igReachIns?.values || [], impressions: igImpIns?.values || [] }
+      impressions30: 0,
+      impGrowth: 0,
+      likes: igLikes,
+      comments: igComments,
+      saves: igSaves,
+      shares: igShares,
+      insightsByDay: { reach: igReachIns?.values || [], impressions: [] }
     },
     fb: {
       followers: fb.info.fan_count || 0,
       followersGrowth: 0,
-      reach30: sumIns(fbIns, 'page_reach') || 0,
-      reachGrowth: calcGrowth(fbReachIns?.values),
-      impressions30: sumIns(fbIns, 'page_impressions_organic') || 0,
-      impGrowth: calcGrowth(fbImpIns?.values),
-      engaged: sumIns(fbIns, 'page_engaged_users') || 0,
-      insightsByDay: { reach: fbReachIns?.values || [], impressions: fbImpIns?.values || [] }
+      reach30: sumIns(fbIns, 'page_impressions_unique') || 0,
+      reachGrowth: calcGrowth(fbImpIns?.values),
+      impressions30: sumIns(fbIns, 'page_post_engagements') || 0,
+      impGrowth: calcGrowth(fbEngIns?.values),
+      likes: 0, comments: 0, saves: 0, shares: 0,
+      insightsByDay: { reach: fbImpIns?.values || [], impressions: fbEngIns?.values || [] }
     }
   };
 }
@@ -1042,23 +1057,21 @@ function fmtPct(n) { return n == null ? '—' : (n > 0 ? '+' : '') + n.toFixed(1
 function getData() {
   if (!LIVE_METRICS) return null;
   const ig = LIVE_METRICS.ig, fb = LIVE_METRICS.fb;
-  if (currentPlat === 'ig') return { ...ig, likes:0, comments:0, saves:0, shares:0, er:0, erGrowth:0 };
-  if (currentPlat === 'fb') return { ...fb, likes:0, comments:0, saves:0, shares:0, er:0, erGrowth:0 };
-  const posts = LIVE_POSTS;
-  let likes=0, comments=0, saves=0, shares=0;
-  for(const p of posts){ likes+=p.likes||0; comments+=p.comments||0; saves+=p.saves||0; shares+=p.shares||0; }
+  const igLikes = ig.likes||0, igComments = ig.comments||0, igSaves = ig.saves||0, igShares = ig.shares||0;
   const totReach = ig.reach30 + fb.reach30;
-  const totInt = likes + comments + saves;
+  const totInt = igLikes + igComments + igSaves + igShares;
   const er = totReach > 0 ? parseFloat((totInt/totReach*100).toFixed(2)) : 0;
+  if (currentPlat === 'ig') return { ...ig, likes: igLikes, comments: igComments, saves: igSaves, shares: igShares, er: ig.reach30>0?parseFloat(((igLikes+igComments+igSaves+igShares)/ig.reach30*100).toFixed(2)):0, erGrowth:0 };
+  if (currentPlat === 'fb') return { ...fb, likes:0, comments:0, saves:0, shares:0, er:0, erGrowth:0 };
   return {
     followers: ig.followers + fb.followers,
-    followersGrowth: parseFloat(((ig.followersGrowth + fb.followersGrowth)/2).toFixed(1)),
+    followersGrowth: 0,
     reach30: totReach,
     reachGrowth: parseFloat(((ig.reachGrowth + fb.reachGrowth)/2).toFixed(1)),
     impressions30: ig.impressions30 + fb.impressions30,
     impGrowth: parseFloat(((ig.impGrowth + fb.impGrowth)/2).toFixed(1)),
-    likes, comments, saves, shares, er, erGrowth: 0,
-    profileViews: ig.profileViews || 0,
+    likes: igLikes, comments: igComments, saves: igSaves, shares: igShares,
+    er, erGrowth: 0,
   };
 }
 
