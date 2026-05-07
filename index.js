@@ -27,7 +27,7 @@ app.get('/metrics', async (req, res) => {
   try {
     const [igInfo, igInsights, fbInfo, fbInsights] = await Promise.all([
       apiFetch(`${BASE}/${IG_ACCOUNT_ID}?fields=followers_count,media_count,name&access_token=${TOKEN}`),
-      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=reach,impressions,profile_views&period=day&since=${since}&until=${until}&access_token=${TOKEN}`),
+      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=reach,total_interactions,profile_views&period=day&since=${since}&until=${until}&access_token=${TOKEN}`),
       apiFetch(`${BASE}/${FB_PAGE_ID}?fields=fan_count,name,followers_count&access_token=${TOKEN}`),
       apiFetch(`${BASE}/${FB_PAGE_ID}/insights?metric=page_impressions_organic,page_reach,page_engaged_users&period=day&since=${since}&until=${until}&access_token=${TOKEN}`)
     ]);
@@ -47,15 +47,17 @@ app.get('/posts', async (req, res) => {
     let igPosts = [], fbPosts = [];
 
     if (platform !== 'fb') {
-      const media = await apiFetch(`${BASE}/${IG_ACCOUNT_ID}/media?fields=id,media_type,media_url,thumbnail_url,timestamp,like_count,comments_count,caption&limit=${limit}&access_token=${TOKEN}`);
-      for (const m of (media.data || []).slice(0, limit)) {
-        try {
-          const insights = await apiFetch(`${BASE}/${m.id}/insights?metric=reach,impressions,saved&access_token=${TOKEN}`);
-          igPosts.push({ ...m, platform: 'ig', insights: insights.data });
-        } catch (e) {
-          igPosts.push({ ...m, platform: 'ig', insights: [] });
+      try {
+        const media = await apiFetch(`${BASE}/${IG_ACCOUNT_ID}/media?fields=id,media_type,media_url,thumbnail_url,timestamp,like_count,comments_count,caption&limit=${limit}&access_token=${TOKEN}`);
+        for (const m of (media.data || []).slice(0, limit)) {
+          try {
+            const insights = await apiFetch(`${BASE}/${m.id}/insights?metric=reach,saved&access_token=${TOKEN}`);
+            igPosts.push({ ...m, platform: 'ig', insights: insights.data });
+          } catch (e) {
+            igPosts.push({ ...m, platform: 'ig', insights: [] });
+          }
         }
-      }
+      } catch(e) { console.warn('IG posts error:', e.message); }
     }
 
     if (platform !== 'ig') {
