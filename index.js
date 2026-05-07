@@ -25,14 +25,21 @@ app.get('/metrics', async (req, res) => {
   const since = Math.floor(Date.now() / 1000) - period * 86400;
   const until = Math.floor(Date.now() / 1000);
   try {
-    const [igInfo, igInsights, fbInfo, fbInsights] = await Promise.all([
+    const [igInfo, igReach, igImpressions, fbInfo, fbInsights] = await Promise.all([
       apiFetch(`${BASE}/${IG_ACCOUNT_ID}?fields=followers_count,media_count,name&access_token=${TOKEN}`),
-      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=reach,total_interactions,profile_views&period=day&since=${since}&until=${until}&access_token=${TOKEN}`),
+      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=reach&period=day&since=${since}&until=${until}&access_token=${TOKEN}`),
+      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=impressions&period=day&since=${since}&until=${until}&access_token=${TOKEN}`),
       apiFetch(`${BASE}/${FB_PAGE_ID}?fields=fan_count,name,followers_count&access_token=${TOKEN}`),
       apiFetch(`${BASE}/${FB_PAGE_ID}/insights?metric=page_impressions_organic,page_reach,page_engaged_users&period=day&since=${since}&until=${until}&access_token=${TOKEN}`)
     ]);
     res.json({
-      ig: { info: igInfo, insights: igInsights.data },
+      ig: { 
+        info: igInfo, 
+        insights: [
+          ...(igReach.data || []),
+          ...(igImpressions.data || [])
+        ]
+      },
       fb: { info: fbInfo, insights: fbInsights.data }
     });
   } catch (e) {
