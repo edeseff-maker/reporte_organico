@@ -26,7 +26,7 @@ app.get('/metrics', async (req, res) => {
   try {
     const [fbInfo, fbInsights] = await Promise.all([
       apiFetch(`${BASE}/${FB_PAGE_ID}?fields=fan_count,name,followers_count&access_token=${PAGE_TOKEN}`),
-      apiFetch(`${BASE}/${FB_PAGE_ID}/insights?metric=page_impressions_organic,page_reach,page_engaged_users,page_post_engagements&period=day&since=${since}&until=${until}&access_token=${PAGE_TOKEN}`)
+      apiFetch(`${BASE}/${FB_PAGE_ID}/insights?metric=page_impressions_organic,page_reach,page_engaged_users&period=day&since=${since}&until=${until}&access_token=${PAGE_TOKEN}`)
     ]);
     res.json({
       ig: { info: { followers_count: 0, media_count: 0, name: 'Instagram (pendiente)' }, insights: [] },
