@@ -921,60 +921,111 @@
 
 <script>
 // ============================================================
-// DATA
+// API CONFIG
 // ============================================================
-const DATA = {
-  ig: {
-    followers: 284500,
-    followersGrowth: 3.2,
-    reach30: 1850000,
-    reachGrowth: 8.4,
-    impressions30: 4320000,
-    impGrowth: 5.1,
-    likes: 98400,
-    comments: 12600,
-    saves: 34200,
-    shares: 8900,
-    er: 4.82,
-    erGrowth: 0.3,
-    profileViews: 128000,
-  },
-  fb: {
-    followers: 512000,
-    followersGrowth: 0.8,
-    reach30: 920000,
-    reachGrowth: -2.1,
-    impressions30: 2100000,
-    impGrowth: -1.4,
-    likes: 34500,
-    comments: 8900,
-    saves: 4200,
-    shares: 22000,
-    er: 2.31,
-    erGrowth: -0.1,
-    profileViews: 48000,
-  }
-};
+const API = 'https://reporteorganico-production.up.railway.app';
 
-const POSTS = [
-  { id:1, pl:'ig', type:'REEL', img:'https://images.unsplash.com/photo-1561758033-d89a9ad46330?w=400&h=400&fit=crop', caption:'¿Cuál es tu Coca-Cola favorita? El sabor que nunca falla. #CocaCola #FEMSA', likes:18400, comments:2100, saves:5600, shares:890, reach:284000, er:9.21 },
-  { id:2, pl:'ig', type:'CAROUSEL', img:'https://images.unsplash.com/photo-1554866585-cd94860890b7?w=400&h=400&fit=crop', caption:'Momentos que se comparten mejor con una Coca-Cola bien fría. 🎉', likes:14200, comments:1800, saves:7800, shares:620, reach:241000, er:9.89 },
-  { id:3, pl:'fb', type:'VIDEO', img:'https://images.unsplash.com/photo-1581098365948-6a5a912b7a49?w=400&h=400&fit=crop', caption:'La felicidad tiene un sabor. Compartí este momento con alguien especial.', likes:9800, comments:3400, saves:1200, shares:8400, reach:198000, er:11.5 },
-  { id:4, pl:'ig', type:'IMAGE', img:'https://images.unsplash.com/photo-1581098365948-6a5a912b7a49?w=400&h=400&fit=crop', caption:'El verano se vive mejor con Coca-Cola. ☀️ #Verano2025', likes:11200, comments:940, saves:3400, shares:280, reach:186000, er:8.4 },
-  { id:5, pl:'ig', type:'REEL', img:'https://images.unsplash.com/photo-1534353341677-b3cb3cbfd9da?w=400&h=400&fit=crop', caption:'Brindamos por los mejores momentos. Siempre Coca-Cola.', likes:8900, comments:720, saves:2100, shares:410, reach:162000, er:7.5 },
-  { id:6, pl:'fb', type:'IMAGE', img:'https://images.unsplash.com/photo-1527960669566-f882ba85a4d1?w=400&h=400&fit=crop', caption:'Una Coca-Cola para cada ocasión. ¿Con cuál te quedás vos?', likes:6700, comments:1900, saves:800, shares:3200, reach:148000, er:8.5 },
-];
-
-const CONTENT_TYPES = [
-  { type:'Reel', posts:18, reach:198000, er:8.4, saves:4200, badge:'type-reel' },
-  { type:'Video', posts:12, reach:164000, er:7.9, saves:2800, badge:'type-video' },
-  { type:'Carrusel', posts:24, reach:142000, er:6.8, saves:5600, badge:'type-carousel' },
-  { type:'Imagen', posts:36, reach:98000, er:4.2, saves:1400, badge:'type-image' },
+// Cache de datos
+let LIVE_METRICS = null;
+let LIVE_POSTS = [];
+let CONTENT_TYPES = [
+  { type:'Reel', posts:0, reach:0, er:0, saves:0, badge:'type-reel' },
+  { type:'Video', posts:0, reach:0, er:0, saves:0, badge:'type-video' },
+  { type:'Carrusel', posts:0, reach:0, er:0, saves:0, badge:'type-carousel' },
+  { type:'Imagen', posts:0, reach:0, er:0, saves:0, badge:'type-image' },
 ];
 
 let currentPeriod = 30;
 let currentPlat = 'both';
 let reachChartInst = null, platChartInst = null, typeChartInst = null, follChartInst = null;
+
+// ============================================================
+// FETCH DATA FROM RAILWAY
+// ============================================================
+function sumIns(insights, name) {
+  const m = insights?.find(i => i.name === name);
+  if (!m) return null;
+  return m.values?.reduce((a, v) => a + (v.value || 0), 0) || null;
+}
+
+function calcGrowth(values) {
+  if (!values || values.length < 2) return 0;
+  const half = Math.floor(values.length / 2);
+  const prev = values.slice(0, half).reduce((a, v) => a + (v.value || 0), 0);
+  const curr = values.slice(half).reduce((a, v) => a + (v.value || 0), 0);
+  if (!prev) return 0;
+  return parseFloat(((curr - prev) / prev * 100).toFixed(1));
+}
+
+async function fetchMetrics() {
+  const res = await fetch(`${API}/metrics?period=${currentPeriod}`);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+
+  const ig = data.ig, fb = data.fb;
+  const igIns = ig.insights || [], fbIns = fb.insights || [];
+
+  const igReachIns = igIns.find(i => i.name === 'reach');
+  const igImpIns = igIns.find(i => i.name === 'impressions');
+  const fbReachIns = fbIns.find(i => i.name === 'page_reach');
+  const fbImpIns = fbIns.find(i => i.name === 'page_impressions_organic');
+
+  LIVE_METRICS = {
+    ig: {
+      followers: ig.info.followers_count || 0,
+      followersGrowth: 0,
+      reach30: sumIns(igIns, 'reach') || 0,
+      reachGrowth: calcGrowth(igReachIns?.values),
+      impressions30: sumIns(igIns, 'impressions') || 0,
+      impGrowth: calcGrowth(igImpIns?.values),
+      profileViews: sumIns(igIns, 'profile_views') || 0,
+      insightsByDay: { reach: igReachIns?.values || [], impressions: igImpIns?.values || [] }
+    },
+    fb: {
+      followers: fb.info.fan_count || 0,
+      followersGrowth: 0,
+      reach30: sumIns(fbIns, 'page_reach') || 0,
+      reachGrowth: calcGrowth(fbReachIns?.values),
+      impressions30: sumIns(fbIns, 'page_impressions_organic') || 0,
+      impGrowth: calcGrowth(fbImpIns?.values),
+      engaged: sumIns(fbIns, 'page_engaged_users') || 0,
+      insightsByDay: { reach: fbReachIns?.values || [], impressions: fbImpIns?.values || [] }
+    }
+  };
+}
+
+async function fetchPosts() {
+  const res = await fetch(`${API}/posts?platform=${currentPlat}&limit=9`);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+
+  const igPosts = (data.ig || []).map(p => {
+    const reach = p.insights?.find(i => i.name === 'reach')?.values?.[0]?.value || 0;
+    const saved = p.insights?.find(i => i.name === 'saved')?.values?.[0]?.value || 0;
+    const likes = p.like_count || 0;
+    const comments = p.comments_count || 0;
+    const er = reach > 0 ? parseFloat(((likes + comments + saved) / reach * 100).toFixed(2)) : 0;
+    return { pl:'ig', type: p.media_type || 'IMAGE', img: p.media_url || p.thumbnail_url, caption: p.caption || '', likes, comments, saves: saved, shares: 0, reach, er };
+  });
+
+  const fbPosts = (data.fb || []).map(p => {
+    const likes = p.reactions?.summary?.total_count || 0;
+    const comments = p.comments?.summary?.total_count || 0;
+    const shares = p.shares?.count || 0;
+    return { pl:'fb', type:'POST', img: p.full_picture, caption: p.message || '', likes, comments, saves: 0, shares, reach: 0, er: 0 };
+  });
+
+  LIVE_POSTS = [...igPosts, ...fbPosts];
+
+  // Calcular métricas por tipo de contenido
+  const typeMap = { IMAGE: { type:'Imagen', badge:'type-image', posts:0, reach:0, erSum:0, saves:0 }, VIDEO: { type:'Video', badge:'type-video', posts:0, reach:0, erSum:0, saves:0 }, CAROUSEL_ALBUM: { type:'Carrusel', badge:'type-carousel', posts:0, reach:0, erSum:0, saves:0 }, REEL: { type:'Reel', badge:'type-reel', posts:0, reach:0, erSum:0, saves:0 } };
+  for (const p of igPosts) {
+    const t = typeMap[p.type] || typeMap['IMAGE'];
+    t.posts++; t.reach += p.reach; t.erSum += p.er; t.saves += p.saves;
+  }
+  CONTENT_TYPES = Object.values(typeMap).filter(t => t.posts > 0).map(t => ({ ...t, reach: t.posts ? Math.round(t.reach/t.posts) : 0, er: t.posts ? parseFloat((t.erSum/t.posts).toFixed(1)) : 0 }));
+  if (!CONTENT_TYPES.length) CONTENT_TYPES = [{ type:'Sin datos', posts:0, reach:0, er:0, saves:0, badge:'type-image' }];
+}
 
 // ============================================================
 // UTILS
@@ -988,30 +1039,26 @@ function fmt(n) {
 
 function fmtPct(n) { return n == null ? '—' : (n > 0 ? '+' : '') + n.toFixed(1) + '%'; }
 
-function scaleFactor() {
-  if(currentPeriod === 7) return 0.22;
-  if(currentPeriod === 90) return 2.8;
-  return 1;
-}
-
 function getData() {
-  const s = scaleFactor();
-  if(currentPlat === 'ig') return { ...DATA.ig, reach30: Math.round(DATA.ig.reach30*s), impressions30: Math.round(DATA.ig.impressions30*s), followers: DATA.ig.followers };
-  if(currentPlat === 'fb') return { ...DATA.fb, reach30: Math.round(DATA.fb.reach30*s), impressions30: Math.round(DATA.fb.impressions30*s), followers: DATA.fb.followers };
+  if (!LIVE_METRICS) return null;
+  const ig = LIVE_METRICS.ig, fb = LIVE_METRICS.fb;
+  if (currentPlat === 'ig') return { ...ig, likes:0, comments:0, saves:0, shares:0, er:0, erGrowth:0 };
+  if (currentPlat === 'fb') return { ...fb, likes:0, comments:0, saves:0, shares:0, er:0, erGrowth:0 };
+  const posts = LIVE_POSTS;
+  let likes=0, comments=0, saves=0, shares=0;
+  for(const p of posts){ likes+=p.likes||0; comments+=p.comments||0; saves+=p.saves||0; shares+=p.shares||0; }
+  const totReach = ig.reach30 + fb.reach30;
+  const totInt = likes + comments + saves;
+  const er = totReach > 0 ? parseFloat((totInt/totReach*100).toFixed(2)) : 0;
   return {
-    followers: DATA.ig.followers + DATA.fb.followers,
-    followersGrowth: ((DATA.ig.followersGrowth + DATA.fb.followersGrowth)/2),
-    reach30: Math.round((DATA.ig.reach30 + DATA.fb.reach30)*s),
-    reachGrowth: ((DATA.ig.reachGrowth + DATA.fb.reachGrowth)/2).toFixed(1)*1,
-    impressions30: Math.round((DATA.ig.impressions30 + DATA.fb.impressions30)*s),
-    impGrowth: ((DATA.ig.impGrowth + DATA.fb.impGrowth)/2).toFixed(1)*1,
-    likes: DATA.ig.likes + DATA.fb.likes,
-    comments: DATA.ig.comments + DATA.fb.comments,
-    saves: DATA.ig.saves + DATA.fb.saves,
-    shares: DATA.ig.shares + DATA.fb.shares,
-    er: ((DATA.ig.er + DATA.fb.er)/2).toFixed(2)*1,
-    erGrowth: ((DATA.ig.erGrowth + DATA.fb.erGrowth)/2).toFixed(2)*1,
-    profileViews: DATA.ig.profileViews + DATA.fb.profileViews,
+    followers: ig.followers + fb.followers,
+    followersGrowth: parseFloat(((ig.followersGrowth + fb.followersGrowth)/2).toFixed(1)),
+    reach30: totReach,
+    reachGrowth: parseFloat(((ig.reachGrowth + fb.reachGrowth)/2).toFixed(1)),
+    impressions30: ig.impressions30 + fb.impressions30,
+    impGrowth: parseFloat(((ig.impGrowth + fb.impGrowth)/2).toFixed(1)),
+    likes, comments, saves, shares, er, erGrowth: 0,
+    profileViews: ig.profileViews || 0,
   };
 }
 
@@ -1020,7 +1067,8 @@ function getData() {
 // ============================================================
 function renderMetrics() {
   const d = getData();
-  const interactions = d.likes + d.comments + d.saves + d.shares;
+  if (!d) { document.getElementById('metricsGrid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--gray-400);padding:2rem;font-size:13px">Cargando métricas...</div>'; return; }
+  const interactions = (d.likes||0) + (d.comments||0) + (d.saves||0) + (d.shares||0);
   const cards = [
     { label:'Alcance orgánico', value: fmt(d.reach30), delta: fmtPct(d.reachGrowth), up: d.reachGrowth >= 0, sub: 'vs. período anterior', accent:'' },
     { label:'Impresiones', value: fmt(d.impressions30), delta: fmtPct(d.impGrowth), up: d.impGrowth >= 0, sub: 'vs. período anterior', accent:'blue' },
@@ -1048,24 +1096,22 @@ function renderMetrics() {
 // REACH CHART
 // ============================================================
 function renderReachChart() {
-  const days = currentPeriod;
-  const labels = [];
-  const reachVals = [];
-  const impVals = [];
-  const now = new Date();
-  const igBase = 62000, fbBase = 30000;
-  const factor = scaleFactor();
+  if (!LIVE_METRICS) return;
+  const ig = LIVE_METRICS.ig, fb = LIVE_METRICS.fb;
+  const rByD = {}, iByD = {};
 
-  for(let i = days-1; i >= 0; i--) {
-    const d = new Date(now); d.setDate(d.getDate()-i);
-    labels.push(d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'}));
-    const noise = 0.7 + Math.random()*0.6;
-    let r = 0, im = 0;
-    if(currentPlat !== 'fb') { r += Math.round(igBase*noise*factor/days*30); im += Math.round(igBase*1.8*noise*factor/days*30); }
-    if(currentPlat !== 'ig') { r += Math.round(fbBase*noise*factor/days*30); im += Math.round(fbBase*1.6*noise*factor/days*30); }
-    reachVals.push(r);
-    impVals.push(im);
+  if (currentPlat !== 'fb') {
+    ig.insightsByDay.reach.forEach(v => { const d=v.end_time?.slice(0,10)||''; rByD[d]=(rByD[d]||0)+v.value; });
+    ig.insightsByDay.impressions.forEach(v => { const d=v.end_time?.slice(0,10)||''; iByD[d]=(iByD[d]||0)+v.value; });
   }
+  if (currentPlat !== 'ig') {
+    fb.insightsByDay.reach.forEach(v => { const d=v.end_time?.slice(0,10)||''; rByD[d]=(rByD[d]||0)+v.value; });
+    fb.insightsByDay.impressions.forEach(v => { const d=v.end_time?.slice(0,10)||''; iByD[d]=(iByD[d]||0)+v.value; });
+  }
+
+  const labels = Object.keys(rByD).sort();
+  const reachVals = labels.map(d=>rByD[d]||0);
+  const impVals = labels.map(d=>iByD[d]||0);
 
   if(reachChartInst) reachChartInst.destroy();
   reachChartInst = new Chart(document.getElementById('reachChart'),{
@@ -1089,9 +1135,9 @@ function renderReachChart() {
 // PLATFORM DONUT
 // ============================================================
 function renderPlatChart() {
-  const s = scaleFactor();
-  const igR = Math.round(DATA.ig.reach30*s);
-  const fbR = Math.round(DATA.fb.reach30*s);
+  if (!LIVE_METRICS) return;
+  const igR = LIVE_METRICS.ig.reach30;
+  const fbR = LIVE_METRICS.fb.reach30;
   const data = currentPlat==='ig' ? [igR,0] : currentPlat==='fb' ? [0,fbR] : [igR,fbR];
   if(platChartInst) platChartInst.destroy();
   platChartInst = new Chart(document.getElementById('platChart'),{
@@ -1109,10 +1155,13 @@ function renderPlatChart() {
 // ============================================================
 function renderTypeChart() {
   if(typeChartInst) typeChartInst.destroy();
+  const labels = CONTENT_TYPES.map(t=>t.type);
+  const vals = CONTENT_TYPES.map(t=>t.er);
+  const colors = ['#7C3AED','#E61C24','#C47A15','#1A5FA8'];
   typeChartInst = new Chart(document.getElementById('typeChart'),{
     type:'bar',
-    data:{ labels:['Reel','Video','Carrusel','Imagen'],
-      datasets:[{ label:'ER%', data:[8.4,7.9,6.8,4.2], backgroundColor:['#7C3AED','#E61C24','#C47A15','#1A5FA8'], borderRadius:4 }]
+    data:{ labels,
+      datasets:[{ label:'ER%', data:vals, backgroundColor:colors.slice(0,labels.length), borderRadius:4 }]
     },
     options:{
       responsive:true, maintainAspectRatio:false, indexAxis:'y',
@@ -1176,7 +1225,8 @@ function renderAudience() {
 // ============================================================
 function renderPosts() {
   const sort = document.getElementById('sortSelect').value;
-  let posts = POSTS.filter(p => currentPlat==='both' || p.pl===currentPlat);
+  let posts = LIVE_POSTS.filter(p => currentPlat==='both' || p.pl===currentPlat);
+  if (!posts.length) { document.getElementById('postsGrid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--gray-400);padding:2rem;font-size:13px">Sin posts disponibles</div>'; return; }
   posts.sort((a,b) => b[sort==='er'?'er':sort==='saves'?'saves':sort==='likes'?'likes':'reach'] - a[sort==='er'?'er':sort==='saves'?'saves':sort==='likes'?'likes':'reach']);
   document.getElementById('postsGrid').innerHTML = posts.slice(0,6).map((p,i)=>`
     <div class="post-card">
@@ -1246,8 +1296,8 @@ function setPeriod(d, btn) {
   document.querySelectorAll('.period-tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   const label = d===7?'Últimos 7 días':d===30?'Últimos 30 días':'Últimos 90 días';
-  document.getElementById('dateRange').innerHTML = `${label} · Actualizado hoy a las <span id="updateTime">${document.getElementById('updateTime').textContent}</span>`;
-  renderAll();
+  document.getElementById('dateRange').innerHTML = `${label} · Actualizado hoy a las <span id="updateTime">${document.getElementById('updateTime')?.textContent||''}</span>`;
+  refreshAll();
 }
 
 function setPlat(p, btn) {
@@ -1257,13 +1307,21 @@ function setPlat(p, btn) {
     el.className = 'platform-tab';
     if(x===p) el.classList.add('active-'+x);
   });
-  renderAll();
+  refreshAll();
 }
 
-function refreshAll() {
+async function refreshAll() {
   const overlay = document.getElementById('loadingOverlay');
   overlay.classList.add('show');
-  setTimeout(()=>{ renderAll(); overlay.classList.remove('show'); }, 800);
+  try {
+    await Promise.all([fetchMetrics(), fetchPosts()]);
+    renderAll();
+  } catch(e) {
+    console.error('Error fetching data:', e);
+    alert('Error al conectar con la API: ' + e.message);
+  } finally {
+    overlay.classList.remove('show');
+  }
 }
 
 function renderAll() {
@@ -1282,10 +1340,26 @@ function renderAll() {
 // INIT
 // ============================================================
 document.getElementById('updateTime').textContent = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
-renderAll();
+
+// Carga inicial desde API
+(async () => {
+  const overlay = document.getElementById('loadingOverlay');
+  overlay.classList.add('show');
+  try {
+    await Promise.all([fetchMetrics(), fetchPosts()]);
+  } catch(e) {
+    console.error('Error inicial:', e);
+  } finally {
+    overlay.classList.remove('show');
+    renderAll();
+  }
+})();
 
 // Auto-refresh cada 5 minutos
-setInterval(()=>{ document.getElementById('updateTime').textContent = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}); }, 300000);
+setInterval(async () => {
+  try { await Promise.all([fetchMetrics(), fetchPosts()]); renderAll(); } catch(e) {}
+  document.getElementById('updateTime').textContent = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+}, 300000);
 </script>
 </body>
 </html>
