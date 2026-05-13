@@ -853,8 +853,12 @@
   @media(max-width:1100px) {
     .ads-summary-grid { grid-template-columns: repeat(2,1fr); }
     .ads-creatives-grid { grid-template-columns: repeat(2,1fr); }
+    .metrics-grid { grid-template-columns: repeat(2,1fr); }
+    .charts-row { grid-template-columns: 1fr; }
+    .posts-grid { grid-template-columns: repeat(2,1fr); }
+    .bottom-row { grid-template-columns: 1fr; }
   }
-
+</style>
 </head>
 <body>
 
@@ -1106,6 +1110,8 @@
       <div class="section-subtitle" style="margin-bottom:16px">Con creativos y métricas de engagement</div>
     </div>
     <div class="ads-creatives-grid" id="adsCreativesGrid"></div>
+
+  </div><!-- /ads-section -->
 
 </main>
 
@@ -1611,6 +1617,18 @@ async function refreshOrganic() {
 async function refreshAll() {
   if (currentSection === 'ads') { loadAds(); return; }
   refreshOrganic();
+}
+
+function renderAll() {
+  renderMetrics();
+  renderReachChart();
+  renderPlatChart();
+  renderTypeChart();
+  renderFollChart();
+  renderAudience();
+  renderPosts();
+  renderContentTable();
+  renderHeatmap();
 }
 
 // ============================================================
