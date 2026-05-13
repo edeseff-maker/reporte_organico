@@ -87,34 +87,22 @@ app.get('/posts', async (req, res) => {
 // ============================================================
 app.get('/ads', async (req, res) => {
   const period = req.query.period || 'last_28d';
-  const datePreset = period === '7' ? 'last_7d' : period === '90' ? 'last_90d' : 'last_28d';
+  const since = req.query.since;
+  const until = req.query.until;
+  const timeParams = (since && until) ? `time_range={"since":"${since}","until":"${until}"}` : `date_preset=${period}`;
 
   try {
-    // Traer campañas con métricas de engagement
-    const campaigns = await apiFetch(
-      `${BASE}/${AD_ACCOUNT_ID}/insights?` +
-      `fields=campaign_name,campaign_id,impressions,reach,clicks,ctr,spend,cpm,cpc,video_p25_watched_actions,video_p50_watched_actions,video_p75_watched_actions,video_p100_watched_actions,actions` +
-      `&level=campaign&date_preset=${datePreset}&access_token=${ADS_TOKEN}`
-    );
+    const [campaigns, topAds] = await Promise.all([
+      apiFetch(`${BASE}/${AD_ACCOUNT_ID}/insights?fields=campaign_name,campaign_id,impressions,reach,clicks,ctr,spend,cpm,cpc,video_p25_watched_actions,video_p50_watched_actions,video_p75_watched_actions,video_p100_watched_actions,actions&level=campaign&${timeParams}&access_token=${ADS_TOKEN}`),
+      apiFetch(`${BASE}/${AD_ACCOUNT_ID}/insights?fields=ad_id,ad_name,adset_name,campaign_name,impressions,reach,clicks,ctr,spend,actions&level=ad&${timeParams}&sort=impressions_descending&limit=6&access_token=${ADS_TOKEN}`)
+    ]);
 
-    // Traer los top ads con creativos
-    const topAds = await apiFetch(
-      `${BASE}/${AD_ACCOUNT_ID}/insights?` +
-      `fields=ad_id,ad_name,adset_name,campaign_name,impressions,reach,clicks,ctr,spend,actions` +
-      `&level=ad&date_preset=${datePreset}&sort=impressions_descending&limit=6&access_token=${ADS_TOKEN}`
-    );
-
-    // Para cada top ad, traer el creativo (imagen/video)
     const adsWithCreatives = await Promise.all(
       (topAds.data || []).slice(0, 6).map(async (ad) => {
         try {
-          const adDetails = await apiFetch(
-            `${BASE}/${ad.ad_id}?fields=creative{id,name,thumbnail_url,image_url,video_id,body,title,effective_instagram_media_id}&access_token=${ADS_TOKEN}`
-          );
+          const adDetails = await apiFetch(`${BASE}/${ad.ad_id}?fields=creative{id,name,thumbnail_url,image_url,video_id,body,title,effective_instagram_media_id}&access_token=${ADS_TOKEN}`);
           return { ...ad, creative: adDetails.creative || null };
-        } catch(e) {
-          return { ...ad, creative: null };
-        }
+        } catch(e) { return { ...ad, creative: null }; }
       })
     );
 
