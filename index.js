@@ -83,7 +83,7 @@ app.get('/posts', async (req, res) => {
 });
 
 // ============================================================
-// ADS - CAMPAÑAS
+// ADS - JERARQUÍA CAMPAÑA > CONJUNTO > ANUNCIO
 // ============================================================
 app.get('/ads', async (req, res) => {
   const period = req.query.period || 'last_28d';
@@ -92,22 +92,53 @@ app.get('/ads', async (req, res) => {
   const timeParams = (since && until) ? `time_range={"since":"${since}","until":"${until}"}` : `date_preset=${period}`;
 
   try {
-    const [campaigns, topAds] = await Promise.all([
-      apiFetch(`${BASE}/${AD_ACCOUNT_ID}/insights?fields=campaign_name,campaign_id,impressions,reach,clicks,ctr,spend,cpm,cpc,video_p25_watched_actions,video_p50_watched_actions,video_p75_watched_actions,video_p100_watched_actions,actions&level=campaign&${timeParams}&access_token=${ADS_TOKEN}`),
-      apiFetch(`${BASE}/${AD_ACCOUNT_ID}/insights?fields=ad_id,ad_name,adset_name,campaign_name,impressions,reach,clicks,ctr,spend,actions&level=ad&${timeParams}&sort=impressions_descending&limit=6&access_token=${ADS_TOKEN}`)
+    // Traer todo en paralelo: campañas, conjuntos y anuncios
+    const [campaigns, adsets, allAds] = await Promise.all([
+      apiFetch(`${BASE}/${AD_ACCOUNT_ID}/insights?fields=campaign_id,campaign_name,impressions,reach,clicks,ctr,spend,cpm,cpc,video_p25_watched_actions,video_p50_watched_actions,video_p75_watched_actions,video_p100_watched_actions,actions&level=campaign&${timeParams}&access_token=${ADS_TOKEN}`),
+      apiFetch(`${BASE}/${AD_ACCOUNT_ID}/insights?fields=campaign_id,campaign_name,adset_id,adset_name,impressions,reach,clicks,ctr,spend,cpm,cpc,actions&level=adset&${timeParams}&access_token=${ADS_TOKEN}`),
+      apiFetch(`${BASE}/${AD_ACCOUNT_ID}/insights?fields=campaign_id,adset_id,ad_id,ad_name,adset_name,campaign_name,impressions,reach,clicks,ctr,spend,actions&level=ad&${timeParams}&sort=impressions_descending&limit=50&access_token=${ADS_TOKEN}`)
     ]);
 
+    // Traer creativos para los top 6 ads por impresiones
+    const topSixAds = (allAds.data || []).slice(0, 6);
     const adsWithCreatives = await Promise.all(
-      (topAds.data || []).slice(0, 6).map(async (ad) => {
+      topSixAds.map(async (ad) => {
         try {
-          const adDetails = await apiFetch(`${BASE}/${ad.ad_id}?fields=creative{id,name,thumbnail_url,image_url,video_id,body,title,effective_instagram_media_id}&access_token=${ADS_TOKEN}`);
-          return { ...ad, creative: adDetails.creative || null };
+          const adDetails = await apiFetch(`${BASE}/${ad.ad_id}?fields=creative{id,name,image_url,video_id,body,title,effective_instagram_media_id,object_story_spec{video_data{image_url}}}&access_token=${ADS_TOKEN}`);
+          const creative = adDetails.creative || null;
+          if (creative?.effective_instagram_media_id) {
+            try {
+              const igMedia = await apiFetch(`${BASE}/${creative.effective_instagram_media_id}?fields=media_url,thumbnail_url&access_token=${SYSTEM_TOKEN}`);
+              creative.thumbnail_url = igMedia.media_url || igMedia.thumbnail_url || creative.image_url;
+            } catch(e) {
+              creative.thumbnail_url = creative.image_url || creative.object_story_spec?.video_data?.image_url || '';
+            }
+          } else {
+            creative.thumbnail_url = creative.image_url || creative.object_story_spec?.video_data?.image_url || '';
+          }
+          return { ...ad, creative };
         } catch(e) { return { ...ad, creative: null }; }
       })
     );
 
+    // Construir jerarquía: campaign > adsets > ads
+    const creativeMap = {};
+    adsWithCreatives.forEach(a => { creativeMap[a.ad_id] = a.creative; });
+
+    const hierarchy = (campaigns.data || []).map(camp => {
+      const campAdsets = (adsets.data || [])
+        .filter(as => as.campaign_id === camp.campaign_id)
+        .map(adset => {
+          const adsetAds = (allAds.data || [])
+            .filter(ad => ad.adset_id === adset.adset_id)
+            .map(ad => ({ ...ad, creative: creativeMap[ad.ad_id] || null }));
+          return { ...adset, ads: adsetAds };
+        });
+      return { ...camp, adsets: campAdsets };
+    });
+
     res.json({
-      campaigns: campaigns.data || [],
+      hierarchy,
       topAds: adsWithCreatives,
       summary: {
         totalSpend: (campaigns.data || []).reduce((a, c) => a + parseFloat(c.spend || 0), 0),
@@ -116,6 +147,124 @@ app.get('/ads', async (req, res) => {
         totalClicks: (campaigns.data || []).reduce((a, c) => a + parseInt(c.clicks || 0), 0),
       }
     });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ============================================================
+// CONTENIDO UNIFICADO - join orgánico + pago por post
+// ============================================================
+app.get('/unified', async (req, res) => {
+  const period = req.query.period || 'last_28d';
+  const since = req.query.since;
+  const until = req.query.until;
+  const timeParams = (since && until) ? `time_range={"since":"${since}","until":"${until}"}` : `date_preset=${period}`;
+
+  try {
+    // Traer todos los ads con su effective_instagram_media_id
+    const allAds = await apiFetch(
+      `${BASE}/${AD_ACCOUNT_ID}/insights?` +
+      `fields=ad_id,ad_name,campaign_name,impressions,reach,clicks,ctr,spend,actions&` +
+      `level=ad&${timeParams}&limit=50&access_token=${ADS_TOKEN}`
+    );
+
+    // Para cada ad, traer el creative con el ig media id
+    const adsWithMedia = await Promise.all(
+      (allAds.data || []).map(async (ad) => {
+        try {
+          const adDetails = await apiFetch(
+            `${BASE}/${ad.ad_id}?fields=creative{effective_instagram_media_id,image_url,body,title,video_id,object_story_spec{video_data{image_url}}}&access_token=${ADS_TOKEN}`
+          );
+          return { ...ad, igMediaId: adDetails.creative?.effective_instagram_media_id || null, creative: adDetails.creative || null };
+        } catch(e) { return { ...ad, igMediaId: null, creative: null }; }
+      })
+    );
+
+    // Agrupar métricas pagas por igMediaId
+    const paidByMediaId = {};
+    for (const ad of adsWithMedia) {
+      if (!ad.igMediaId) continue;
+      if (!paidByMediaId[ad.igMediaId]) {
+        paidByMediaId[ad.igMediaId] = {
+          spend: 0, impressions: 0, reach: 0, clicks: 0,
+          video_views: 0, reactions: 0, comments: 0, saves: 0,
+          campaigns: new Set(), creative: ad.creative
+        };
+      }
+      const p = paidByMediaId[ad.igMediaId];
+      p.spend += parseFloat(ad.spend || 0);
+      p.impressions += parseInt(ad.impressions || 0);
+      p.reach += parseInt(ad.reach || 0);
+      p.clicks += parseInt(ad.clicks || 0);
+      p.campaigns.add(ad.campaign_name);
+      const getA = (type) => parseInt((ad.actions||[]).find(a=>a.action_type===type)?.value||0);
+      p.video_views += getA('video_view');
+      p.reactions += getA('post_reaction');
+      p.comments += getA('comment');
+      p.saves += getA('onsite_conversion.post_save');
+    }
+
+    // Traer posts orgánicos de IG con sus métricas
+    const media = await apiFetch(
+      `${BASE}/${IG_ACCOUNT_ID}/media?fields=id,media_type,media_url,thumbnail_url,timestamp,like_count,comments_count,caption&limit=50&access_token=${SYSTEM_TOKEN}`
+    );
+
+    const unifiedPosts = [];
+    for (const m of (media.data || [])) {
+      let orgReach = 0, orgSaves = 0;
+      try {
+        const insights = await apiFetch(`${BASE}/${m.id}/insights?metric=reach,saved&access_token=${SYSTEM_TOKEN}`);
+        orgReach = insights.data?.find(i=>i.name==='reach')?.values?.[0]?.value || 0;
+        orgSaves = insights.data?.find(i=>i.name==='saved')?.values?.[0]?.value || 0;
+      } catch(e) {}
+
+      const paid = paidByMediaId[m.id] || null;
+
+      // Si tiene métricas pagas, get high-res image
+      let img = m.media_url || m.thumbnail_url;
+      if (paid?.creative?.effective_instagram_media_id) {
+        try {
+          const igM = await apiFetch(`${BASE}/${m.id}?fields=media_url,thumbnail_url&access_token=${SYSTEM_TOKEN}`);
+          img = igM.media_url || igM.thumbnail_url || img;
+        } catch(e) {}
+      }
+
+      unifiedPosts.push({
+        id: m.id,
+        media_type: m.media_type,
+        img,
+        caption: m.caption || '',
+        timestamp: m.timestamp,
+        organic: {
+          reach: orgReach,
+          likes: m.like_count || 0,
+          comments: m.comments_count || 0,
+          saves: orgSaves,
+        },
+        paid: paid ? {
+          spend: paid.spend,
+          impressions: paid.impressions,
+          reach: paid.reach,
+          clicks: paid.clicks,
+          video_views: paid.video_views,
+          reactions: paid.reactions,
+          comments: paid.comments,
+          saves: paid.saves,
+          campaigns: Array.from(paid.campaigns),
+        } : null,
+        total: {
+          reach: orgReach + (paid?.reach || 0),
+          interactions: (m.like_count||0) + (m.comments_count||0) + orgSaves + (paid?.reactions||0) + (paid?.comments||0) + (paid?.saves||0),
+          spend: paid?.spend || 0,
+        }
+      });
+    }
+
+    // Ordenar por alcance total
+    unifiedPosts.sort((a, b) => b.total.reach - a.total.reach);
+
+    res.json({ posts: unifiedPosts });
   } catch(e) {
     res.status(500).json({ error: e.message });
   }
