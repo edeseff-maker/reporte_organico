@@ -858,6 +858,191 @@
     .posts-grid { grid-template-columns: repeat(2,1fr); }
     .bottom-row { grid-template-columns: 1fr; }
   }
+
+  /* HIERARCHY */
+  .campaign-hierarchy { margin-bottom: 24px; }
+
+  .hier-campaign {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+
+  .hier-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+
+  .hier-row:hover { background: var(--gray-100); }
+
+  .hier-chevron {
+    width: 20px; height: 20px;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+    color: var(--gray-400);
+  }
+
+  .hier-chevron.open { transform: rotate(90deg); }
+
+  .hier-campaign-name { font-size: 14px; font-weight: 600; color: var(--black); flex: 1; }
+  .hier-adset-name { font-size: 13px; font-weight: 500; color: var(--gray-800); flex: 1; }
+  .hier-ad-name { font-size: 12px; color: var(--gray-600); flex: 1; }
+
+  .hier-metrics {
+    display: flex;
+    gap: 20px;
+    flex-shrink: 0;
+  }
+
+  .hier-metric { display: flex; flex-direction: column; align-items: flex-end; min-width: 60px; }
+  .hier-metric-label { font-size: 10px; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.04em; }
+  .hier-metric-value { font-size: 13px; font-weight: 600; color: var(--black); font-family: var(--mono); }
+
+  .hier-children { display: none; border-top: 1px solid var(--gray-100); }
+  .hier-children.open { display: block; }
+
+  .hier-adset-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 16px 11px 36px;
+    cursor: pointer; transition: background 0.1s;
+    background: var(--gray-100);
+    border-bottom: 1px solid var(--gray-200);
+  }
+
+  .hier-adset-row:hover { background: var(--gray-200); }
+
+  .hier-adset-children { display: none; }
+  .hier-adset-children.open { display: block; }
+
+  .hier-ad-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px 10px 56px;
+    border-bottom: 1px solid var(--gray-100);
+    background: var(--white);
+  }
+
+  .hier-ad-thumb {
+    width: 40px; height: 40px;
+    border-radius: 6px;
+    object-fit: cover;
+    background: var(--gray-200);
+    flex-shrink: 0;
+  }
+
+  /* PERIOD DROPDOWN */
+  .period-dropdown-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .period-select {
+    font-size: 12px;
+    padding: 6px 10px;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-sm);
+    background: var(--white);
+    color: var(--gray-800);
+    cursor: pointer;
+    font-family: var(--font);
+    appearance: auto;
+  }
+  .unified-section { display: none; }
+  .unified-section.active { display: block; }
+
+  .unified-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
+    overflow: hidden;
+    margin-bottom: 14px;
+    transition: box-shadow 0.15s;
+  }
+
+  .unified-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+
+  .unified-card-header {
+    display: grid;
+    grid-template-columns: 120px 1fr auto;
+    gap: 16px;
+    padding: 16px;
+    align-items: center;
+    cursor: pointer;
+  }
+
+  .unified-thumb {
+    width: 120px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    background: var(--gray-100);
+    display: block;
+    flex-shrink: 0;
+  }
+
+  .unified-caption {
+    font-size: 12px;
+    color: var(--gray-600);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+
+  .unified-totals { display: flex; gap: 20px; flex-wrap: wrap; }
+  .unified-total-item { display: flex; flex-direction: column; }
+  .unified-total-label { font-size: 10px; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.04em; }
+  .unified-total-value { font-size: 16px; font-weight: 600; color: var(--black); font-family: var(--mono); }
+
+  .unified-badges { display: flex; gap: 6px; margin-bottom: 8px; }
+  .badge-organic { background: var(--green-light); color: var(--green); font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 99px; }
+  .badge-paid { background: var(--red-light); color: var(--red-dark); font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 99px; }
+
+  .unified-toggle {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--gray-200);
+    background: var(--gray-100);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+  }
+
+  .unified-toggle:hover { background: var(--gray-200); }
+  .unified-toggle svg { transition: transform 0.2s; }
+  .unified-toggle.open svg { transform: rotate(180deg); }
+
+  .unified-breakdown { display: none; border-top: 1px solid var(--gray-100); padding: 16px; }
+  .unified-breakdown.open { display: block; }
+
+  .breakdown-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .breakdown-col { background: var(--gray-100); border-radius: var(--radius-sm); padding: 14px; }
+
+  .breakdown-col-title {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.06em; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .breakdown-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .breakdown-metric { display: flex; flex-direction: column; }
+  .breakdown-metric-label { font-size: 10px; color: var(--gray-600); margin-bottom: 2px; }
+  .breakdown-metric-value { font-size: 14px; font-weight: 600; color: var(--black); font-family: var(--mono); }
+
+  .unified-campaign-tag {
+    font-size: 10px; background: var(--amber-light); color: var(--amber);
+    padding: 2px 8px; border-radius: 99px; display: inline-block; margin-top: 4px; margin-right: 4px;
+  }
 </style>
 </head>
 <body>
@@ -889,6 +1074,10 @@
     <a class="nav-item" id="nav-ads" href="#" onclick="showSection('ads',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
       Pauta paga
+    </a>
+    <a class="nav-item" id="nav-unified" href="#" onclick="showSection('unified',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M3 12h3m12 0h3M12 3v3m0 12v3"/><path d="M5.6 5.6l2.1 2.1m8.6 8.6l2.1 2.1M5.6 18.4l2.1-2.1m8.6-8.6l2.1-2.1"/></svg>
+      Contenido unificado
     </a>
 
     <div class="nav-label">Cuentas</div>
@@ -1051,51 +1240,32 @@
   <div class="ads-section" id="adsSection">
 
     <!-- ADS PERIOD SELECTOR -->
-    <div style="margin-bottom:20px">
-      <div class="date-picker-wrap">
-        <span style="font-size:12px;color:var(--gray-600);font-weight:500">Período pauta:</span>
-        <button class="date-preset-btn" onclick="setAdsPeriod('last_7d',this)">Última semana</button>
-        <button class="date-preset-btn active" onclick="setAdsPeriod('last_28d',this)">Últimos 28 días</button>
-        <button class="date-preset-btn" onclick="setAdsPeriod('last_month',this)">Último mes</button>
-        <button class="date-preset-btn" onclick="setAdsPeriod('last_90d',this)">Últimos 90 días</button>
-        <div class="date-custom-wrap">
-          <input type="date" id="adsDateFrom">
-          <span>→</span>
-          <input type="date" id="adsDateTo">
-          <button class="date-apply-btn" onclick="applyCustomAdsPeriod()">Aplicar</button>
-        </div>
+    <div class="period-dropdown-wrap">
+      <span style="font-size:12px;color:var(--gray-600);font-weight:500">Período:</span>
+      <select class="period-select" id="adsPeriodSelect" onchange="setAdsPeriodFromSelect(this.value)">
+        <option value="last_7d">Última semana</option>
+        <option value="last_28d" selected>Últimos 28 días</option>
+        <option value="last_month">Último mes</option>
+        <option value="last_90d">Últimos 90 días</option>
+        <option value="custom">Personalizado</option>
+      </select>
+      <div class="date-custom-wrap" id="adsCustomDates" style="display:none">
+        <input type="date" id="adsDateFrom">
+        <span>→</span>
+        <input type="date" id="adsDateTo">
+        <button class="date-apply-btn" onclick="applyCustomAdsPeriod()">Aplicar</button>
       </div>
     </div>
 
     <!-- ADS SUMMARY CARDS -->
     <div class="ads-summary-grid" id="adsSummaryGrid"></div>
 
-    <!-- CAMPAIGNS TABLE -->
-    <div class="campaign-table-wrap">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <div>
-          <div class="section-title">Rendimiento por campaña</div>
-          <div class="section-subtitle">Métricas de engagement y distribución</div>
-        </div>
-      </div>
-      <table class="campaign-table">
-        <thead>
-          <tr>
-            <th style="min-width:200px">Campaña</th>
-            <th>Inversión</th>
-            <th>Impresiones</th>
-            <th>Alcance</th>
-            <th>Clicks</th>
-            <th>CTR</th>
-            <th>CPM</th>
-            <th>CPC</th>
-            <th>Video views</th>
-            <th>Interacciones</th>
-          </tr>
-        </thead>
-        <tbody id="campaignTableBody"></tbody>
-      </table>
+    <!-- CAMPAIGNS HIERARCHY -->
+    <div style="margin-bottom:8px">
+      <div class="section-title">Campañas → Conjuntos → Anuncios</div>
+      <div class="section-subtitle" style="margin-bottom:16px">Desplegá cada nivel para ver el detalle</div>
     </div>
+    <div class="campaign-hierarchy" id="campaignHierarchy"></div>
 
     <!-- VIDEO RETENTION -->
     <div class="chart-card" style="margin-bottom:24px">
@@ -1112,6 +1282,16 @@
     <div class="ads-creatives-grid" id="adsCreativesGrid"></div>
 
   </div><!-- /ads-section -->
+
+  <!-- UNIFIED SECTION -->
+  <div class="unified-section" id="unifiedSection">
+    <div style="margin-bottom:20px">
+      <p style="font-size:13px;color:var(--gray-600)">Cada contenido muestra métricas totales combinadas. Desplegá para ver el desglose orgánico vs pago.</p>
+    </div>
+    <div id="unifiedGrid">
+      <div style="text-align:center;padding:3rem;color:var(--gray-400);font-size:13px">Cargando contenido unificado...</div>
+    </div>
+  </div><!-- /unified-section -->
 
 </main>
 
@@ -1167,17 +1347,130 @@ function showSection(section, btn) {
   currentSection = section;
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
   btn.classList.add('active');
+
+  document.getElementById('organicSection').classList.remove('hidden');
+  document.getElementById('adsSection').classList.remove('active');
+  document.getElementById('unifiedSection').classList.remove('active');
+
   if (section === 'organic') {
-    document.getElementById('organicSection').classList.remove('hidden');
-    document.getElementById('adsSection').classList.remove('active');
     document.getElementById('pageTitle').innerHTML = 'Redes orgánicas <span style="color:var(--red)">—</span> Meta';
-  } else {
+  } else if (section === 'ads') {
     document.getElementById('organicSection').classList.add('hidden');
     document.getElementById('adsSection').classList.add('active');
     document.getElementById('pageTitle').innerHTML = 'Pauta paga <span style="color:var(--red)">—</span> Meta Ads';
     if (!LIVE_ADS) loadAds();
+  } else if (section === 'unified') {
+    document.getElementById('organicSection').classList.add('hidden');
+    document.getElementById('unifiedSection').classList.add('active');
+    document.getElementById('pageTitle').innerHTML = 'Contenido unificado <span style="color:var(--red)">—</span> Orgánico + Pago';
+    loadUnified();
   }
   return false;
+}
+
+let LIVE_UNIFIED = null;
+
+async function fetchUnified() {
+  let url = `${API}/unified?period=${currentAdsPreset}`;
+  if (adsCustomFrom && adsCustomTo) url = `${API}/unified?since=${adsCustomFrom}&until=${adsCustomTo}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  LIVE_UNIFIED = data;
+}
+
+async function loadUnified() {
+  const overlay = document.getElementById('loadingOverlay');
+  overlay.classList.add('show');
+  try {
+    await fetchUnified();
+    renderUnified();
+  } catch(e) {
+    console.error('Unified error:', e);
+    document.getElementById('unifiedGrid').innerHTML = `<div style="text-align:center;padding:2rem;color:var(--gray-400)">Error: ${e.message}</div>`;
+  } finally {
+    overlay.classList.remove('show');
+  }
+}
+
+function toggleBreakdown(id) {
+  const breakdown = document.getElementById('breakdown-' + id);
+  const toggle = document.getElementById('toggle-' + id);
+  breakdown.classList.toggle('open');
+  toggle.classList.toggle('open');
+}
+
+function renderUnified() {
+  if (!LIVE_UNIFIED) return;
+  const posts = LIVE_UNIFIED.posts || [];
+
+  if (!posts.length) {
+    document.getElementById('unifiedGrid').innerHTML = '<div style="text-align:center;padding:3rem;color:var(--gray-400);font-size:13px">Sin contenido disponible</div>';
+    return;
+  }
+
+  document.getElementById('unifiedGrid').innerHTML = posts.slice(0, 20).map((p, i) => {
+    const hasPaid = !!p.paid;
+    const er = p.total.reach > 0 ? ((p.total.interactions / p.total.reach) * 100).toFixed(2) : '0.00';
+
+    return `
+    <div class="unified-card">
+      <div class="unified-card-header" onclick="toggleBreakdown(${i})">
+        ${p.img ? `<img class="unified-thumb" src="${p.img}" alt="Post" loading="lazy" onerror="this.style.background='var(--gray-200)';this.style.display='none'">` : `<div class="unified-thumb"></div>`}
+        <div>
+          <div class="unified-badges">
+            <span class="badge-organic">Orgánico</span>
+            ${hasPaid ? `<span class="badge-paid">Pautado</span>` : ''}
+            <span style="font-size:10px;color:var(--gray-400);padding:2px 0">${p.media_type||'POST'}</span>
+          </div>
+          <div class="unified-caption">${p.caption || '—'}</div>
+          <div class="unified-totals">
+            <div class="unified-total-item"><span class="unified-total-label">Alcance total</span><span class="unified-total-value">${fmt(p.total.reach)}</span></div>
+            <div class="unified-total-item"><span class="unified-total-label">Interacciones</span><span class="unified-total-value">${fmt(p.total.interactions)}</span></div>
+            <div class="unified-total-item"><span class="unified-total-label">ER</span><span class="unified-total-value">${er}%</span></div>
+            ${hasPaid ? `<div class="unified-total-item"><span class="unified-total-label">Inversión</span><span class="unified-total-value">$${Math.round(p.total.spend).toLocaleString('es-AR')}</span></div>` : ''}
+          </div>
+        </div>
+        <div id="toggle-${i}" class="unified-toggle">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+      </div>
+
+      <div id="breakdown-${i}" class="unified-breakdown">
+        <div class="breakdown-grid">
+          <div class="breakdown-col">
+            <div class="breakdown-col-title" style="color:var(--green)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 8v4l3 3"/></svg>
+              Orgánico
+            </div>
+            <div class="breakdown-metrics">
+              <div class="breakdown-metric"><span class="breakdown-metric-label">Alcance</span><span class="breakdown-metric-value">${fmt(p.organic.reach)}</span></div>
+              <div class="breakdown-metric"><span class="breakdown-metric-label">Likes</span><span class="breakdown-metric-value">${fmt(p.organic.likes)}</span></div>
+              <div class="breakdown-metric"><span class="breakdown-metric-label">Comentarios</span><span class="breakdown-metric-value">${fmt(p.organic.comments)}</span></div>
+              <div class="breakdown-metric"><span class="breakdown-metric-label">Guardados</span><span class="breakdown-metric-value">${fmt(p.organic.saves)}</span></div>
+            </div>
+          </div>
+          <div class="breakdown-col" style="${hasPaid ? '' : 'opacity:0.4'}">
+            <div class="breakdown-col-title" style="color:var(--red)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+              Pago
+            </div>
+            ${hasPaid ? `
+            <div class="breakdown-metrics">
+              <div class="breakdown-metric"><span class="breakdown-metric-label">Alcance</span><span class="breakdown-metric-value">${fmt(p.paid.reach)}</span></div>
+              <div class="breakdown-metric"><span class="breakdown-metric-label">Impresiones</span><span class="breakdown-metric-value">${fmt(p.paid.impressions)}</span></div>
+              <div class="breakdown-metric"><span class="breakdown-metric-label">Clicks</span><span class="breakdown-metric-value">${fmt(p.paid.clicks)}</span></div>
+              <div class="breakdown-metric"><span class="breakdown-metric-label">Video views</span><span class="breakdown-metric-value">${fmt(p.paid.video_views)}</span></div>
+              <div class="breakdown-metric"><span class="breakdown-metric-label">Reacciones</span><span class="breakdown-metric-value">${fmt(p.paid.reactions)}</span></div>
+              <div class="breakdown-metric"><span class="breakdown-metric-label">Inversión</span><span class="breakdown-metric-value">$${Math.round(p.paid.spend).toLocaleString('es-AR')}</span></div>
+            </div>
+            ${p.paid.campaigns.map(c => `<span class="unified-campaign-tag">${c}</span>`).join('')}
+            ` : `<p style="font-size:12px;color:var(--gray-400)">Este contenido no fue pautado en el período seleccionado.</p>`}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function setOrgPeriod(d, btn) {
@@ -1189,11 +1482,21 @@ function setOrgPeriod(d, btn) {
   refreshOrganic();
 }
 
+function setAdsPeriodFromSelect(value) {
+  if (value === 'custom') {
+    document.getElementById('adsCustomDates').style.display = 'flex';
+    return;
+  }
+  document.getElementById('adsCustomDates').style.display = 'none';
+  currentAdsPreset = value;
+  adsCustomFrom = null; adsCustomTo = null;
+  loadAds();
+  if (LIVE_UNIFIED) loadUnified();
+}
+
 function setAdsPeriod(preset, btn) {
   currentAdsPreset = preset;
   adsCustomFrom = null; adsCustomTo = null;
-  document.querySelectorAll('#adsSection .date-preset-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
   loadAds();
 }
 
@@ -1636,7 +1939,7 @@ function renderAll() {
 // ============================================================
 function renderAds() {
   if (!LIVE_ADS) return;
-  const { campaigns, topAds, summary } = LIVE_ADS;
+  const { hierarchy, topAds, summary } = LIVE_ADS;
 
   const ars = n => '$' + Math.round(n).toLocaleString('es-AR');
   document.getElementById('adsSummaryGrid').innerHTML = [
@@ -1646,31 +1949,59 @@ function renderAds() {
     { label:'Clicks totales', value: fmt(summary.totalClicks), accent:'amber' },
   ].map(c=>`<div class="metric-card"><div class="metric-card-accent ${c.accent}"></div><div class="metric-label">${c.label}</div><div class="metric-value">${c.value}</div></div>`).join('');
 
-  function getAction(actions, type) { return (actions||[]).find(a=>a.action_type===type)?.value||0; }
+  function getAction(actions, type) { return parseInt((actions||[]).find(a=>a.action_type===type)?.value||0); }
 
-  document.getElementById('campaignTableBody').innerHTML = campaigns.map(c=>{
-    const videoViews = getAction(c.actions,'video_view');
-    const interactions = getAction(c.actions,'post_engagement');
-    return `<tr>
-      <td><div class="campaign-name-cell" title="${c.campaign_name}">${c.campaign_name}</div></td>
-      <td style="font-family:var(--mono)">$${Math.round(parseFloat(c.spend)).toLocaleString('es-AR')}</td>
-      <td style="font-family:var(--mono)">${fmt(parseInt(c.impressions))}</td>
-      <td style="font-family:var(--mono)">${fmt(parseInt(c.reach))}</td>
-      <td style="font-family:var(--mono)">${fmt(parseInt(c.clicks))}</td>
-      <td style="font-family:var(--mono);color:${parseFloat(c.ctr)>2?'var(--green)':'var(--gray-800)'}">${parseFloat(c.ctr).toFixed(2)}%</td>
-      <td style="font-family:var(--mono)">$${parseFloat(c.cpm).toFixed(0)}</td>
-      <td style="font-family:var(--mono)">$${parseFloat(c.cpc).toFixed(0)}</td>
-      <td style="font-family:var(--mono)">${fmt(parseInt(videoViews))}</td>
-      <td style="font-family:var(--mono)">${fmt(parseInt(interactions))}</td>
-    </tr>`;
-  }).join('');
+  function hierMetrics(c) {
+    return `<div class="hier-metrics">
+      <div class="hier-metric"><span class="hier-metric-label">Inversión</span><span class="hier-metric-value">$${Math.round(parseFloat(c.spend||0)).toLocaleString('es-AR')}</span></div>
+      <div class="hier-metric"><span class="hier-metric-label">Alcance</span><span class="hier-metric-value">${fmt(parseInt(c.reach||0))}</span></div>
+      <div class="hier-metric"><span class="hier-metric-label">Impr.</span><span class="hier-metric-value">${fmt(parseInt(c.impressions||0))}</span></div>
+      <div class="hier-metric"><span class="hier-metric-label">CTR</span><span class="hier-metric-value">${parseFloat(c.ctr||0).toFixed(2)}%</span></div>
+      <div class="hier-metric"><span class="hier-metric-label">Clicks</span><span class="hier-metric-value">${fmt(parseInt(c.clicks||0))}</span></div>
+    </div>`;
+  }
 
-  document.getElementById('videoRetentionWrap').innerHTML = campaigns.map(c=>{
+  // Render hierarchy
+  const hierHTML = (hierarchy || []).map((camp, ci) => `
+    <div class="hier-campaign">
+      <div class="hier-row" onclick="toggleHier('camp-${ci}')">
+        <svg class="hier-chevron" id="chev-camp-${ci}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+        <span class="hier-campaign-name">${camp.campaign_name}</span>
+        ${hierMetrics(camp)}
+      </div>
+      <div class="hier-children" id="camp-${ci}">
+        ${(camp.adsets || []).map((adset, ai) => `
+          <div>
+            <div class="hier-adset-row" onclick="toggleHier('adset-${ci}-${ai}')">
+              <svg class="hier-chevron" id="chev-adset-${ci}-${ai}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+              <span class="hier-adset-name">${adset.adset_name}</span>
+              ${hierMetrics(adset)}
+            </div>
+            <div class="hier-adset-children" id="adset-${ci}-${ai}">
+              ${(adset.ads || []).map(ad => `
+                <div class="hier-ad-row">
+                  ${ad.creative?.thumbnail_url ? `<img class="hier-ad-thumb" src="${ad.creative.thumbnail_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : `<div class="hier-ad-thumb"></div>`}
+                  <span class="hier-ad-name">${ad.ad_name}</span>
+                  ${hierMetrics(ad)}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('campaignHierarchy').innerHTML = hierHTML || '<div style="color:var(--gray-400);font-size:13px;padding:1rem">Sin campañas en el período</div>';
+
+  // Video retention
+  document.getElementById('videoRetentionWrap').innerHTML = (hierarchy || []).map(c=>{
     const p25=parseInt(c.video_p25_watched_actions?.[0]?.value||0);
     const p50=parseInt(c.video_p50_watched_actions?.[0]?.value||0);
     const p75=parseInt(c.video_p75_watched_actions?.[0]?.value||0);
     const p100=parseInt(c.video_p100_watched_actions?.[0]?.value||0);
-    const max=p25||1;
+    if (!p25) return '';
+    const max=p25;
     return `<div style="margin-bottom:20px">
       <div style="font-size:12px;font-weight:500;color:var(--black);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:500px">${c.campaign_name}</div>
       <div style="display:flex;gap:8px;align-items:flex-end;height:48px">
@@ -1681,13 +2012,14 @@ function renderAds() {
             <div style="font-size:10px;color:var(--gray-400)">${seg.l}</div>
           </div>
         `).join('')}
-        <div style="font-size:11px;color:var(--gray-400);padding-bottom:16px;margin-left:8px">${p25>0?Math.round(p100/p25*100)+'% retención completa':''}</div>
+        <div style="font-size:11px;color:var(--gray-400);padding-bottom:16px;margin-left:8px">${Math.round(p100/p25*100)}% retención completa</div>
       </div>
     </div>`;
   }).join('');
 
-  document.getElementById('adsCreativesGrid').innerHTML = topAds.map((ad,i)=>{
-    const thumb = ad.creative?.thumbnail_url||ad.creative?.image_url||'';
+  // Top ads creatives
+  document.getElementById('adsCreativesGrid').innerHTML = (topAds || []).map(ad=>{
+    const thumb = ad.creative?.thumbnail_url||'';
     const likes = getAction(ad.actions,'post_reaction');
     const comments = getAction(ad.actions,'comment');
     const videoViews = getAction(ad.actions,'video_view');
@@ -1700,13 +2032,20 @@ function renderAds() {
           <div><div class="ad-stat-label">Alcance</div><div class="ad-stat-value">${fmt(parseInt(ad.reach))}</div></div>
           <div><div class="ad-stat-label">CTR</div><div class="ad-stat-value">${parseFloat(ad.ctr).toFixed(2)}%</div></div>
           <div><div class="ad-stat-label">Inversión</div><div class="ad-stat-value">$${Math.round(parseFloat(ad.spend)).toLocaleString('es-AR')}</div></div>
-          <div><div class="ad-stat-label">Reacciones</div><div class="ad-stat-value">${fmt(parseInt(likes))}</div></div>
-          <div><div class="ad-stat-label">Comentarios</div><div class="ad-stat-value">${fmt(parseInt(comments))}</div></div>
-          <div><div class="ad-stat-label">Video views</div><div class="ad-stat-value">${fmt(parseInt(videoViews))}</div></div>
+          <div><div class="ad-stat-label">Reacciones</div><div class="ad-stat-value">${fmt(likes)}</div></div>
+          <div><div class="ad-stat-label">Comentarios</div><div class="ad-stat-value">${fmt(comments)}</div></div>
+          <div><div class="ad-stat-label">Video views</div><div class="ad-stat-value">${fmt(videoViews)}</div></div>
         </div>
       </div>
     </div>`;
   }).join('');
+}
+
+function toggleHier(id) {
+  const el = document.getElementById(id);
+  const chev = document.getElementById('chev-' + id);
+  if (el) el.classList.toggle('open');
+  if (chev) chev.classList.toggle('open');
 }
 
 // ============================================================
