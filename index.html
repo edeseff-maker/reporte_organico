@@ -1285,8 +1285,33 @@
 
   <!-- UNIFIED SECTION -->
   <div class="unified-section" id="unifiedSection">
-    <div style="margin-bottom:20px">
-      <p style="font-size:13px;color:var(--gray-600)">Cada contenido muestra métricas totales combinadas. Desplegá para ver el desglose orgánico vs pago.</p>
+
+    <!-- PLATFORM TABS FOR UNIFIED -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+      <div class="platform-tabs" style="margin-bottom:0">
+        <button class="platform-tab active-both" id="utab-both" onclick="setUnifiedPlat('both',this)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+          Meta (IG + FB)
+        </button>
+        <button class="platform-tab" id="utab-ig" onclick="setUnifiedPlat('ig',this)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.5" fill="currentColor"/></svg>
+          Instagram
+        </button>
+        <button class="platform-tab" id="utab-fb" onclick="setUnifiedPlat('fb',this)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>
+          Facebook Ads
+        </button>
+      </div>
+      <p style="font-size:12px;color:var(--gray-400)">Período heredado de Pauta paga</p>
+    </div>
+
+    <!-- UNIFIED SUMMARY CARDS -->
+    <div class="metrics-grid" id="unifiedMetricsGrid" style="margin-bottom:24px"></div>
+
+    <!-- CONTENT LIST -->
+    <div style="margin-bottom:8px">
+      <div class="section-title">Contenido por rendimiento total</div>
+      <div class="section-subtitle" style="margin-bottom:16px">Orgánico + Pago · Desplegá cada pieza para ver el desglose</div>
     </div>
     <div id="unifiedGrid">
       <div style="text-align:center;padding:3rem;color:var(--gray-400);font-size:13px">Cargando contenido unificado...</div>
@@ -1320,11 +1345,23 @@ let CONTENT_TYPES = [
 
 let currentPeriod = 28;
 let currentPlat = 'both';
+let currentUnifiedPlat = 'both';
 let currentSection = 'organic';
 let currentAdsPreset = 'last_28d';
 let adsCustomFrom = null, adsCustomTo = null;
 let reachChartInst = null, platChartInst = null, typeChartInst = null, follChartInst = null;
 let LIVE_ADS = null;
+
+function setUnifiedPlat(plat, btn) {
+  currentUnifiedPlat = plat;
+  ['both','ig','fb'].forEach(x => {
+    const el = document.getElementById('utab-' + x);
+    if (!el) return;
+    el.className = 'platform-tab';
+    if (x === plat) el.classList.add('active-' + x);
+  });
+  if (LIVE_UNIFIED) renderUnified();
+}
 
 // ============================================================
 // FETCH ADS
@@ -1404,12 +1441,96 @@ function renderUnified() {
   if (!LIVE_UNIFIED) return;
   const posts = LIVE_UNIFIED.posts || [];
 
-  if (!posts.length) {
+  // ---- SUMMARY CARDS ----
+  // Aggregate totals from all posts based on platform filter
+  let totOrgReach=0, totOrgLikes=0, totOrgComments=0, totOrgSaves=0;
+  let totPaidReach=0, totPaidImp=0, totPaidClicks=0, totPaidSpend=0, totPaidVideoViews=0, totPaidReactions=0;
+
+  for (const p of posts) {
+    // Organic (IG only since that's what we have)
+    if (currentUnifiedPlat !== 'fb') {
+      totOrgReach += p.organic.reach || 0;
+      totOrgLikes += p.organic.likes || 0;
+      totOrgComments += p.organic.comments || 0;
+      totOrgSaves += p.organic.saves || 0;
+    }
+    // Paid
+    if (p.paid && currentUnifiedPlat !== 'ig') {
+      totPaidReach += p.paid.reach || 0;
+      totPaidImp += p.paid.impressions || 0;
+      totPaidClicks += p.paid.clicks || 0;
+      totPaidSpend += p.paid.spend || 0;
+      totPaidVideoViews += p.paid.video_views || 0;
+      totPaidReactions += p.paid.reactions || 0;
+    }
+    if (p.paid && currentUnifiedPlat === 'ig') {
+      // For IG only view, still include paid since it shows on IG
+      totPaidReach += p.paid.reach || 0;
+      totPaidImp += p.paid.impressions || 0;
+      totPaidClicks += p.paid.clicks || 0;
+      totPaidSpend += p.paid.spend || 0;
+      totPaidVideoViews += p.paid.video_views || 0;
+      totPaidReactions += p.paid.reactions || 0;
+    }
+  }
+
+  const totReach = totOrgReach + totPaidReach;
+  const totInteractions = totOrgLikes + totOrgComments + totOrgSaves + totPaidReactions;
+
+  function metricCard(label, total, orgVal, paidVal, accent, id) {
+    return `
+    <div class="metric-card" style="cursor:pointer" onclick="toggleMetricBreakdown('mb-${id}', this)">
+      <div class="metric-card-accent ${accent}"></div>
+      <div class="metric-label">${label}</div>
+      <div class="metric-value">${fmt(total)}</div>
+      <div style="font-size:11px;color:var(--gray-400);margin-top:4px;display:flex;align-items:center;gap:4px">
+        Desglose ↓
+      </div>
+      <div id="mb-${id}" style="display:none;margin-top:10px;border-top:1px solid var(--gray-100);padding-top:10px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:11px;color:var(--green);font-weight:500">● Orgánico</span>
+          <span style="font-size:12px;font-family:var(--mono);font-weight:600">${fmt(orgVal)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between">
+          <span style="font-size:11px;color:var(--red);font-weight:500">● Pago</span>
+          <span style="font-size:12px;font-family:var(--mono);font-weight:600">${fmt(paidVal)}</span>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  document.getElementById('unifiedMetricsGrid').innerHTML = [
+    metricCard('Alcance total', totReach, totOrgReach, totPaidReach, '', 'reach'),
+    metricCard('Impresiones pagas', totPaidImp, 0, totPaidImp, 'blue', 'imp'),
+    metricCard('Interacciones', totInteractions, totOrgLikes+totOrgComments+totOrgSaves, totPaidReactions, 'green', 'int'),
+    metricCard('Video views pago', totPaidVideoViews, 0, totPaidVideoViews, 'amber', 'vv'),
+    metricCard('Likes orgánicos', totOrgLikes, totOrgLikes, 0, '', 'likes'),
+    metricCard('Comentarios', totOrgComments + 0, totOrgComments, 0, 'blue', 'comm'),
+    metricCard('Guardados', totOrgSaves, totOrgSaves, 0, 'green', 'saves'),
+    metricCard('Inversión total', totPaidSpend, 0, totPaidSpend, 'amber', 'spend'),
+  ].join('');
+
+  // Fix: override metric-value for spend to show ARS
+  document.querySelector('#mb-spend')?.previousElementSibling?.previousElementSibling && null;
+  // Re-render spend card with $ format
+  const spendCard = document.getElementById('unifiedMetricsGrid').children[7];
+  if (spendCard) {
+    const valEl = spendCard.querySelector('.metric-value');
+    if (valEl) valEl.textContent = '$' + Math.round(totPaidSpend).toLocaleString('es-AR');
+    const paidEl = spendCard.querySelector('#mb-spend div:last-child span:last-child');
+    if (paidEl) paidEl.textContent = '$' + Math.round(totPaidSpend).toLocaleString('es-AR');
+  }
+
+  // ---- CONTENT LIST ----
+  let filteredPosts = posts;
+  if (currentUnifiedPlat === 'fb') filteredPosts = posts.filter(p => p.paid); // FB only shows pautados
+
+  if (!filteredPosts.length) {
     document.getElementById('unifiedGrid').innerHTML = '<div style="text-align:center;padding:3rem;color:var(--gray-400);font-size:13px">Sin contenido disponible</div>';
     return;
   }
 
-  document.getElementById('unifiedGrid').innerHTML = posts.slice(0, 20).map((p, i) => {
+  document.getElementById('unifiedGrid').innerHTML = filteredPosts.slice(0, 20).map((p, i) => {
     const hasPaid = !!p.paid;
     const er = p.total.reach > 0 ? ((p.total.interactions / p.total.reach) * 100).toFixed(2) : '0.00';
 
@@ -1440,8 +1561,8 @@ function renderUnified() {
         <div class="breakdown-grid">
           <div class="breakdown-col">
             <div class="breakdown-col-title" style="color:var(--green)">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 8v4l3 3"/></svg>
-              Orgánico
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
+              Orgánico (Instagram)
             </div>
             <div class="breakdown-metrics">
               <div class="breakdown-metric"><span class="breakdown-metric-label">Alcance</span><span class="breakdown-metric-value">${fmt(p.organic.reach)}</span></div>
@@ -1453,7 +1574,7 @@ function renderUnified() {
           <div class="breakdown-col" style="${hasPaid ? '' : 'opacity:0.4'}">
             <div class="breakdown-col-title" style="color:var(--red)">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
-              Pago
+              Pago (Meta Ads)
             </div>
             ${hasPaid ? `
             <div class="breakdown-metrics">
@@ -1471,6 +1592,15 @@ function renderUnified() {
       </div>
     </div>`;
   }).join('');
+}
+
+function toggleMetricBreakdown(id, card) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const isOpen = el.style.display !== 'none';
+  el.style.display = isOpen ? 'none' : 'block';
+  const arrow = card.querySelector('div[style*="Desglose"]');
+  if (arrow) arrow.textContent = isOpen ? 'Desglose ↓' : 'Cerrar ↑';
 }
 
 function setOrgPeriod(d, btn) {
