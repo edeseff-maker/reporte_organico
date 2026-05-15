@@ -49,30 +49,52 @@ app.get('/metrics', async (req, res) => {
   const errors = [];
 
   try {
-    const [igInfo, igReach, igInteractions, igViews, igFollows] = await Promise.all([
+    const [igInfo, igReach, igInteractions, igViews, igFollows, igTotalInt] = await Promise.all([
       apiFetch(`${BASE}/${IG_ACCOUNT_ID}?fields=followers_count,media_count,name&access_token=${SYSTEM_TOKEN}`),
-      // Alcance: usar days_28 para coincider con Business Suite
       apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=reach&period=days_28&access_token=${SYSTEM_TOKEN}`),
-      // Interacciones: sumar días del rango
-      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=likes,comments,saves,shares&period=day&metric_type=total_value&since=${sinceTs}&until=${untilTs}&access_token=${SYSTEM_TOKEN}`),
-      // Visualizaciones (equivalente a "Views" de Business Suite)
+      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=likes,comments,saves,shares&period=day&metric_type=total_value&breakdown=media_product_type&since=${sinceTs}&until=${untilTs}&access_token=${SYSTEM_TOKEN}`),
       apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=views&period=day&metric_type=total_value&since=${sinceStr}&until=${untilStr}&access_token=${SYSTEM_TOKEN}`),
-      // Seguidores nuevos / bajas
-      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=follows_and_unfollows&period=day&metric_type=total_value&breakdown=follow_type&since=${sinceStr}&until=${untilStr}&access_token=${SYSTEM_TOKEN}`)
+      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=follows_and_unfollows&period=day&metric_type=total_value&breakdown=follow_type&since=${sinceStr}&until=${untilStr}&access_token=${SYSTEM_TOKEN}`),
+      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=total_interactions&period=day&metric_type=total_value&since=${sinceStr}&until=${untilStr}&access_token=${SYSTEM_TOKEN}`)
     ]);
 
-    // Extraer seguidores y bajas del breakdown
     const followBreakdown = igFollows.data?.[0]?.total_value?.breakdowns?.[0]?.results || [];
     const newFollowers = followBreakdown.find(r => r.dimension_values?.[0] === 'FOLLOWER')?.value || 0;
     const unfollowers = followBreakdown.find(r => r.dimension_values?.[0] === 'NON_FOLLOWER')?.value || 0;
+
+    // Parsear breakdown de interacciones por tipo (POST/REEL/AD)
+    function parseBreakdown(data, metricName) {
+      const m = data.find(i => i.name === metricName);
+      if (!m) return { total: 0, post: 0, reel: 0, ad: 0 };
+      const results = m.total_value?.breakdowns?.[0]?.results || [];
+      return {
+        total: m.total_value?.value || 0,
+        post: results.find(r => r.dimension_values?.[0] === 'POST')?.value || 0,
+        reel: results.find(r => r.dimension_values?.[0] === 'REEL')?.value || 0,
+        ad: results.find(r => r.dimension_values?.[0] === 'AD')?.value || 0,
+      };
+    }
+
+    const intData = igInteractions.data || [];
+    const likesBreakdown = parseBreakdown(intData, 'likes');
+    const commentsBreakdown = parseBreakdown(intData, 'comments');
+    const savesBreakdown = parseBreakdown(intData, 'saves');
+    const sharesBreakdown = parseBreakdown(intData, 'shares');
 
     results.ig = {
       info: igInfo,
       insights: igReach.data || [],
       interactions: igInteractions.data || [],
       views: igViews.data?.[0]?.total_value?.value || 0,
+      totalInteractions: igTotalInt.data?.[0]?.total_value?.value || 0,
       newFollowers,
-      unfollowers
+      unfollowers,
+      breakdown: {
+        likes: likesBreakdown,
+        comments: commentsBreakdown,
+        saves: savesBreakdown,
+        shares: sharesBreakdown,
+      }
     };
   } catch(e) { errors.push('IG: ' + e.message); }
 
