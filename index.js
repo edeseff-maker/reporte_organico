@@ -29,40 +29,60 @@ app.get('/', (req, res) => res.json({ status: 'ok', service: 'Meta Dashboard API
 app.get('/metrics', async (req, res) => {
   const period = parseInt(req.query.period) || 28;
 
-  // Calcular fechas exactas
+  // Período actual
   const now = new Date();
-  const untilDate = new Date(now);
-  untilDate.setHours(0, 0, 0, 0);
-  const sinceDate = new Date(untilDate);
-  sinceDate.setDate(sinceDate.getDate() - period);
+  const untilDate = new Date(now); untilDate.setHours(0, 0, 0, 0);
+  const sinceDate = new Date(untilDate); sinceDate.setDate(sinceDate.getDate() - period);
+
+  // Período anterior (mismo rango, desplazado hacia atrás)
+  const prevUntilDate = new Date(sinceDate);
+  const prevSinceDate = new Date(prevUntilDate); prevSinceDate.setDate(prevSinceDate.getDate() - period);
 
   const sinceStr = sinceDate.toISOString().slice(0, 10);
   const untilStr = untilDate.toISOString().slice(0, 10);
+  const prevSinceStr = prevSinceDate.toISOString().slice(0, 10);
+  const prevUntilStr = prevUntilDate.toISOString().slice(0, 10);
   const sinceTs = Math.floor(sinceDate.getTime() / 1000);
   const untilTs = Math.floor(untilDate.getTime() / 1000);
+  const prevSinceTs = Math.floor(prevSinceDate.getTime() / 1000);
+  const prevUntilTs = Math.floor(prevUntilDate.getTime() / 1000);
 
-  // Formato legible de fechas (ej: "16 abr 2026 - 13 may 2026")
   const fmtDate = d => d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' });
   const dateLabel = `${fmtDate(sinceDate)} – ${fmtDate(new Date(untilDate.getTime() - 86400000))}`;
+  const prevDateLabel = `${fmtDate(prevSinceDate)} – ${fmtDate(new Date(prevUntilDate.getTime() - 86400000))}`;
 
-  const results = { ig: { info: {}, insights: [], interactions: [], views: null, follows: null }, fb: { info: {}, insights: [] }, dateLabel, sinceStr, untilStr };
+  const results = { ig: {}, fb: {}, dateLabel, prevDateLabel, sinceStr, untilStr };
   const errors = [];
 
   try {
-    const [igInfo, igReach, igInteractions, igViews, igFollows, igTotalInt] = await Promise.all([
+    const [
+      igInfo, igReach, igInteractions, igViews, igFollows, igTotalInt,
+      igReachPrev, igInteractionsPrev, igViewsPrev, igTotalIntPrev,
+      igDemoAge, igDemoGender, igDemoCity, igDemoCountry
+    ] = await Promise.all([
       apiFetch(`${BASE}/${IG_ACCOUNT_ID}?fields=followers_count,media_count,name&access_token=${SYSTEM_TOKEN}`),
+      // Período actual
       apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=reach&period=days_28&access_token=${SYSTEM_TOKEN}`),
       apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=likes,comments,saves,shares&period=day&metric_type=total_value&breakdown=media_product_type&since=${sinceTs}&until=${untilTs}&access_token=${SYSTEM_TOKEN}`),
       apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=views&period=day&metric_type=total_value&since=${sinceStr}&until=${untilStr}&access_token=${SYSTEM_TOKEN}`),
       apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=follows_and_unfollows&period=day&metric_type=total_value&breakdown=follow_type&since=${sinceStr}&until=${untilStr}&access_token=${SYSTEM_TOKEN}`),
-      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=total_interactions&period=day&metric_type=total_value&since=${sinceStr}&until=${untilStr}&access_token=${SYSTEM_TOKEN}`)
+      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=total_interactions&period=day&metric_type=total_value&since=${sinceStr}&until=${untilStr}&access_token=${SYSTEM_TOKEN}`),
+      // Período anterior
+      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=reach&period=days_28&since=${prevSinceStr}&until=${prevUntilStr}&access_token=${SYSTEM_TOKEN}`),
+      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=likes,comments,saves,shares&period=day&metric_type=total_value&since=${prevSinceTs}&until=${prevUntilTs}&access_token=${SYSTEM_TOKEN}`),
+      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=views&period=day&metric_type=total_value&since=${prevSinceStr}&until=${prevUntilStr}&access_token=${SYSTEM_TOKEN}`),
+      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=total_interactions&period=day&metric_type=total_value&since=${prevSinceStr}&until=${prevUntilStr}&access_token=${SYSTEM_TOKEN}`),
+      // Demografía (lifetime, no cambia con el período)
+      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=follower_demographics&period=lifetime&metric_type=total_value&breakdown=age&access_token=${SYSTEM_TOKEN}`),
+      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=follower_demographics&period=lifetime&metric_type=total_value&breakdown=gender&access_token=${SYSTEM_TOKEN}`),
+      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=follower_demographics&period=lifetime&metric_type=total_value&breakdown=city&access_token=${SYSTEM_TOKEN}`),
+      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=follower_demographics&period=lifetime&metric_type=total_value&breakdown=country&access_token=${SYSTEM_TOKEN}`)
     ]);
 
     const followBreakdown = igFollows.data?.[0]?.total_value?.breakdowns?.[0]?.results || [];
     const newFollowers = followBreakdown.find(r => r.dimension_values?.[0] === 'FOLLOWER')?.value || 0;
     const unfollowers = followBreakdown.find(r => r.dimension_values?.[0] === 'NON_FOLLOWER')?.value || 0;
 
-    // Parsear breakdown de interacciones por tipo (POST/REEL/AD)
     function parseBreakdown(data, metricName) {
       const m = data.find(i => i.name === metricName);
       if (!m) return { total: 0, post: 0, reel: 0, ad: 0 };
@@ -75,25 +95,78 @@ app.get('/metrics', async (req, res) => {
       };
     }
 
+    function getTotalVal(data, name) {
+      return data.find(i => i.name === name)?.total_value?.value || 0;
+    }
+
+    function pct(curr, prev) {
+      if (!prev) return null;
+      return parseFloat(((curr - prev) / prev * 100).toFixed(1));
+    }
+
     const intData = igInteractions.data || [];
-    const likesBreakdown = parseBreakdown(intData, 'likes');
-    const commentsBreakdown = parseBreakdown(intData, 'comments');
-    const savesBreakdown = parseBreakdown(intData, 'saves');
-    const sharesBreakdown = parseBreakdown(intData, 'shares');
+    const prevIntData = igInteractionsPrev.data || [];
+
+    const currReach = igReach.data?.[0]?.values?.slice(-1)?.[0]?.value || 0;
+    const prevReach = igReachPrev.data?.[0]?.values?.slice(-1)?.[0]?.value || 0;
+    const currViews = igViews.data?.[0]?.total_value?.value || 0;
+    const prevViews = igViewsPrev.data?.[0]?.total_value?.value || 0;
+    const currTotalInt = igTotalInt.data?.[0]?.total_value?.value || 0;
+    const prevTotalInt = igTotalIntPrev.data?.[0]?.total_value?.value || 0;
+
+    const currLikes = getTotalVal(intData, 'likes');
+    const prevLikes = getTotalVal(prevIntData, 'likes');
+    const currComments = getTotalVal(intData, 'comments');
+    const prevComments = getTotalVal(prevIntData, 'comments');
+    const currSaves = getTotalVal(intData, 'saves');
+    const prevSaves = getTotalVal(prevIntData, 'saves');
+    const currShares = getTotalVal(intData, 'shares');
+    const prevShares = getTotalVal(prevIntData, 'shares');
+
+    // Parsear demografía
+    function parseDemographic(apiData) {
+      return (apiData.data?.[0]?.total_value?.breakdowns?.[0]?.results || [])
+        .map(r => ({ label: r.dimension_values?.[0], value: r.value }))
+        .sort((a, b) => b.value - a.value);
+    }
 
     results.ig = {
       info: igInfo,
       insights: igReach.data || [],
-      interactions: igInteractions.data || [],
-      views: igViews.data?.[0]?.total_value?.value || 0,
-      totalInteractions: igTotalInt.data?.[0]?.total_value?.value || 0,
+      interactions: intData,
+      views: currViews,
+      totalInteractions: currTotalInt,
       newFollowers,
       unfollowers,
       breakdown: {
-        likes: likesBreakdown,
-        comments: commentsBreakdown,
-        saves: savesBreakdown,
-        shares: sharesBreakdown,
+        likes: parseBreakdown(intData, 'likes'),
+        comments: parseBreakdown(intData, 'comments'),
+        saves: parseBreakdown(intData, 'saves'),
+        shares: parseBreakdown(intData, 'shares'),
+      },
+      prev: {
+        reach: prevReach,
+        views: prevViews,
+        totalInteractions: prevTotalInt,
+        likes: prevLikes,
+        comments: prevComments,
+        saves: prevSaves,
+        shares: prevShares,
+      },
+      growth: {
+        reach: pct(currReach, prevReach),
+        views: pct(currViews, prevViews),
+        totalInteractions: pct(currTotalInt, prevTotalInt),
+        likes: pct(currLikes, prevLikes),
+        comments: pct(currComments, prevComments),
+        saves: pct(currSaves, prevSaves),
+        shares: pct(currShares, prevShares),
+      },
+      demographics: {
+        age: parseDemographic(igDemoAge),
+        gender: parseDemographic(igDemoGender),
+        city: parseDemographic(igDemoCity).slice(0, 10),
+        country: parseDemographic(igDemoCountry).slice(0, 10),
       }
     };
   } catch(e) { errors.push('IG: ' + e.message); }
@@ -136,6 +209,73 @@ app.get('/posts', async (req, res) => {
   }
 
   res.json({ ig: igPosts, fb: fbPosts, errors });
+});
+
+// ============================================================
+// HEATMAP - mejores horarios basado en posts reales
+// ============================================================
+app.get('/heatmap', async (req, res) => {
+  try {
+    // Traer los últimos 50 posts con timestamp y métricas
+    const media = await apiFetch(
+      `${BASE}/${IG_ACCOUNT_ID}/media?fields=id,timestamp,like_count,comments_count,media_type&limit=50&access_token=${SYSTEM_TOKEN}`
+    );
+
+    // Para cada post, traer reach y saves
+    const posts = await Promise.all(
+      (media.data || []).map(async (m) => {
+        let reach = 0, saves = 0;
+        try {
+          const ins = await apiFetch(`${BASE}/${m.id}/insights?metric=reach,saved&access_token=${SYSTEM_TOKEN}`);
+          reach = ins.data?.find(i => i.name === 'reach')?.values?.[0]?.value || 0;
+          saves = ins.data?.find(i => i.name === 'saved')?.values?.[0]?.value || 0;
+        } catch(e) {}
+        const engagement = (m.like_count||0) + (m.comments_count||0) + saves;
+        const er = reach > 0 ? (engagement / reach * 100) : 0;
+
+        // Convertir timestamp a hora y día local (Argentina UTC-3)
+        const date = new Date(m.timestamp);
+        const localHour = (date.getUTCHours() - 3 + 24) % 24;
+        const localDay = (date.getUTCDay() + (localHour < 0 ? -1 : 0) + 7) % 7; // 0=Sun
+
+        return { hour: localHour, day: localDay, er, engagement, reach };
+      })
+    );
+
+    // Construir grilla hora x día (24 horas x 7 días)
+    // Días: 0=Dom, 1=Lun, ..., 6=Sáb
+    const grid = {};
+    const counts = {};
+    for (const p of posts) {
+      const key = `${p.day}-${p.hour}`;
+      if (!grid[key]) { grid[key] = 0; counts[key] = 0; }
+      grid[key] += p.er;
+      counts[key]++;
+    }
+
+    // Calcular promedios y armar estructura
+    const heatmap = [];
+    for (let day = 0; day < 7; day++) {
+      for (let hour = 0; hour < 24; hour++) {
+        const key = `${day}-${hour}`;
+        heatmap.push({
+          day, hour,
+          avgEr: counts[key] ? parseFloat((grid[key] / counts[key]).toFixed(2)) : 0,
+          posts: counts[key] || 0
+        });
+      }
+    }
+
+    // Top 5 mejores slots
+    const topSlots = [...heatmap]
+      .filter(s => s.posts > 0)
+      .sort((a, b) => b.avgEr - a.avgEr)
+      .slice(0, 5);
+
+    res.json({ heatmap, topSlots, totalPosts: posts.length });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ============================================================
