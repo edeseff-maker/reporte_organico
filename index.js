@@ -28,18 +28,52 @@ app.get('/', (req, res) => res.json({ status: 'ok', service: 'Meta Dashboard API
 // ============================================================
 app.get('/metrics', async (req, res) => {
   const period = parseInt(req.query.period) || 28;
-  const since = Math.floor(Date.now() / 1000) - period * 86400;
-  const until = Math.floor(Date.now() / 1000);
-  const results = { ig: { info: {}, insights: [], interactions: [] }, fb: { info: {}, insights: [] } };
+
+  // Calcular fechas exactas
+  const now = new Date();
+  const untilDate = new Date(now);
+  untilDate.setHours(0, 0, 0, 0);
+  const sinceDate = new Date(untilDate);
+  sinceDate.setDate(sinceDate.getDate() - period);
+
+  const sinceStr = sinceDate.toISOString().slice(0, 10);
+  const untilStr = untilDate.toISOString().slice(0, 10);
+  const sinceTs = Math.floor(sinceDate.getTime() / 1000);
+  const untilTs = Math.floor(untilDate.getTime() / 1000);
+
+  // Formato legible de fechas (ej: "16 abr 2026 - 13 may 2026")
+  const fmtDate = d => d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' });
+  const dateLabel = `${fmtDate(sinceDate)} – ${fmtDate(new Date(untilDate.getTime() - 86400000))}`;
+
+  const results = { ig: { info: {}, insights: [], interactions: [], views: null, follows: null }, fb: { info: {}, insights: [] }, dateLabel, sinceStr, untilStr };
   const errors = [];
 
   try {
-    const [igInfo, igReach, igInteractions] = await Promise.all([
+    const [igInfo, igReach, igInteractions, igViews, igFollows] = await Promise.all([
       apiFetch(`${BASE}/${IG_ACCOUNT_ID}?fields=followers_count,media_count,name&access_token=${SYSTEM_TOKEN}`),
-      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=reach&period=day&since=${since}&until=${until}&access_token=${SYSTEM_TOKEN}`),
-      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=likes,comments,saves,shares&period=day&metric_type=total_value&since=${since}&until=${until}&access_token=${SYSTEM_TOKEN}`)
+      // Alcance: usar days_28 para coincider con Business Suite
+      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=reach&period=days_28&access_token=${SYSTEM_TOKEN}`),
+      // Interacciones: sumar días del rango
+      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=likes,comments,saves,shares&period=day&metric_type=total_value&since=${sinceTs}&until=${untilTs}&access_token=${SYSTEM_TOKEN}`),
+      // Visualizaciones (equivalente a "Views" de Business Suite)
+      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=views&period=day&metric_type=total_value&since=${sinceStr}&until=${untilStr}&access_token=${SYSTEM_TOKEN}`),
+      // Seguidores nuevos / bajas
+      apiFetch(`${BASE}/${IG_ACCOUNT_ID}/insights?metric=follows_and_unfollows&period=day&metric_type=total_value&breakdown=follow_type&since=${sinceStr}&until=${untilStr}&access_token=${SYSTEM_TOKEN}`)
     ]);
-    results.ig = { info: igInfo, insights: igReach.data || [], interactions: igInteractions.data || [] };
+
+    // Extraer seguidores y bajas del breakdown
+    const followBreakdown = igFollows.data?.[0]?.total_value?.breakdowns?.[0]?.results || [];
+    const newFollowers = followBreakdown.find(r => r.dimension_values?.[0] === 'FOLLOWER')?.value || 0;
+    const unfollowers = followBreakdown.find(r => r.dimension_values?.[0] === 'NON_FOLLOWER')?.value || 0;
+
+    results.ig = {
+      info: igInfo,
+      insights: igReach.data || [],
+      interactions: igInteractions.data || [],
+      views: igViews.data?.[0]?.total_value?.value || 0,
+      newFollowers,
+      unfollowers
+    };
   } catch(e) { errors.push('IG: ' + e.message); }
 
   try {
