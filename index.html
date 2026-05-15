@@ -1051,12 +1051,11 @@
 <aside class="sidebar">
   <div class="sidebar-logo">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-        <rect width="28" height="28" rx="6" fill="#E61C24"/>
-        <text x="14" y="19" font-family="DM Sans" font-weight="700" font-size="13" fill="white" text-anchor="middle">CF</text>
-      </svg>
+      <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">
+        <img src="https://graph.facebook.com/17841407645624576/picture?type=normal&access_token=EAAMH53lTgHoBRaP8oJWSac0QGKkab6lAyMhXwSVF84kzuSoCgboVKNUZBJpZAwYoHZC9e7GrdMKTpERjjPtXJYiYSlg3km38MuIJV8hH6B0RLxHBBqEubFcx8sMrh1t5r8k7A4bJqDzBKBbWGDNzmZCmd52GXIAPa8tsPikX5Jm38OU4mOZBth4K8Esk3QwZDZD" width="36" height="36" style="object-fit:cover;border-radius:8px" onerror="this.parentElement.innerHTML='<span style=\'font-size:12px;font-weight:700;color:white\'>CF</span>'">
+      </div>
       <div>
-        <div class="logo-brand">Coca-Cola FEMSA</div>
+        <div class="logo-brand">Coca-Cola FEMSA Argentina</div>
         <div class="logo-sub">Dashboard</div>
       </div>
     </div>
@@ -1074,10 +1073,6 @@
     <a class="nav-item" id="nav-ads" href="#" onclick="showSection('ads',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
       Pauta paga
-    </a>
-    <a class="nav-item" id="nav-unified" href="#" onclick="showSection('unified',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M3 12h3m12 0h3M12 3v3m0 12v3"/><path d="M5.6 5.6l2.1 2.1m8.6 8.6l2.1 2.1M5.6 18.4l2.1-2.1m8.6-8.6l2.1-2.1"/></svg>
-      Contenido unificado
     </a>
 
     <div class="nav-label">Cuentas</div>
@@ -1123,10 +1118,11 @@
   <!-- ORGANIC PERIOD SELECTOR -->
   <div style="margin-bottom:20px">
     <div class="date-picker-wrap">
-      <span style="font-size:12px;color:var(--gray-600);font-weight:500">Período orgánico:</span>
-      <button class="date-preset-btn" onclick="setOrgPeriod(7,this)">Última semana</button>
-      <button class="date-preset-btn active" onclick="setOrgPeriod(28,this)">Últimos 28 días</button>
-      <button class="date-preset-btn" onclick="setOrgPeriod(90,this)">Últimos 90 días</button>
+      <span style="font-size:12px;color:var(--gray-600);font-weight:500">Período:</span>
+      <button class="date-preset-btn" id="orgbtn-7" onclick="setOrgPeriod(7,this)">Última semana</button>
+      <button class="date-preset-btn active" id="orgbtn-28" onclick="setOrgPeriod(28,this)">Últimos 28 días</button>
+      <button class="date-preset-btn" id="orgbtn-90" onclick="setOrgPeriod(90,this)">Últimos 90 días</button>
+      <span id="orgDateLabel" style="font-size:12px;color:var(--gray-400);margin-left:4px"></span>
     </div>
   </div>
 
@@ -1283,41 +1279,6 @@
 
   </div><!-- /ads-section -->
 
-  <!-- UNIFIED SECTION -->
-  <div class="unified-section" id="unifiedSection">
-
-    <!-- PLATFORM TABS FOR UNIFIED -->
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
-      <div class="platform-tabs" style="margin-bottom:0">
-        <button class="platform-tab active-both" id="utab-both" onclick="setUnifiedPlat('both',this)">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
-          Meta (IG + FB)
-        </button>
-        <button class="platform-tab" id="utab-ig" onclick="setUnifiedPlat('ig',this)">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.5" fill="currentColor"/></svg>
-          Instagram
-        </button>
-        <button class="platform-tab" id="utab-fb" onclick="setUnifiedPlat('fb',this)">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>
-          Facebook Ads
-        </button>
-      </div>
-      <p style="font-size:12px;color:var(--gray-400)">Período heredado de Pauta paga</p>
-    </div>
-
-    <!-- UNIFIED SUMMARY CARDS -->
-    <div class="metrics-grid" id="unifiedMetricsGrid" style="margin-bottom:24px"></div>
-
-    <!-- CONTENT LIST -->
-    <div style="margin-bottom:8px">
-      <div class="section-title">Contenido por rendimiento total</div>
-      <div class="section-subtitle" style="margin-bottom:16px">Orgánico + Pago · Desplegá cada pieza para ver el desglose</div>
-    </div>
-    <div id="unifiedGrid">
-      <div style="text-align:center;padding:3rem;color:var(--gray-400);font-size:13px">Cargando contenido unificado...</div>
-    </div>
-  </div><!-- /unified-section -->
-
 </main>
 
 <div class="loading-overlay" id="loadingOverlay">
@@ -1387,7 +1348,6 @@ function showSection(section, btn) {
 
   document.getElementById('organicSection').classList.remove('hidden');
   document.getElementById('adsSection').classList.remove('active');
-  document.getElementById('unifiedSection').classList.remove('active');
 
   if (section === 'organic') {
     document.getElementById('pageTitle').innerHTML = 'Redes orgánicas <span style="color:var(--red)">—</span> Meta';
@@ -1396,11 +1356,6 @@ function showSection(section, btn) {
     document.getElementById('adsSection').classList.add('active');
     document.getElementById('pageTitle').innerHTML = 'Pauta paga <span style="color:var(--red)">—</span> Meta Ads';
     if (!LIVE_ADS) loadAds();
-  } else if (section === 'unified') {
-    document.getElementById('organicSection').classList.add('hidden');
-    document.getElementById('unifiedSection').classList.add('active');
-    document.getElementById('pageTitle').innerHTML = 'Contenido unificado <span style="color:var(--red)">—</span> Orgánico + Pago';
-    loadUnified();
   }
   return false;
 }
@@ -1605,11 +1560,20 @@ function toggleMetricBreakdown(id, card) {
 
 function setOrgPeriod(d, btn) {
   currentPeriod = d;
-  document.querySelectorAll('.date-preset-btn').forEach(b => { if(b.closest('#organicSection') || b.closest('.organic-section')) b.classList.remove('active'); });
+  document.querySelectorAll('.date-preset-btn').forEach(b => { if(b.id && b.id.startsWith('orgbtn')) b.classList.remove('active'); });
   btn.classList.add('active');
-  const label = d===7?'Última semana':d===28?'Últimos 28 días':'Últimos 90 días';
-  document.getElementById('dateRange').innerHTML = `${label} · Actualizado hoy a las <span id="updateTime">${document.getElementById('updateTime')?.textContent||''}</span>`;
+  updateOrgDateLabel(d);
   refreshOrganic();
+}
+
+function updateOrgDateLabel(d) {
+  const until = new Date(); until.setHours(0,0,0,0);
+  const since = new Date(until); since.setDate(since.getDate()-d);
+  const fmtD = dt => dt.toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'});
+  const dateLabel = `${fmtD(since)} – ${fmtD(new Date(until.getTime()-86400000))}`;
+  const el = document.getElementById('orgDateLabel');
+  if (el) el.textContent = dateLabel;
+  document.getElementById('dateRange').innerHTML = `Actualizado a las <span id="updateTime">${document.getElementById('updateTime')?.textContent||new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})}</span>`;
 }
 
 function setAdsPeriodFromSelect(value) {
@@ -1676,13 +1640,15 @@ async function fetchMetrics() {
   const ig = data.ig, fb = data.fb;
   const igIns = ig.insights || [];
   const igInter = ig.interactions || [];
-  const fbIns = fb.insights || [];
 
+  // Alcance: tomar el último valor de days_28 (el más reciente)
   const igReachIns = igIns.find(i => i.name === 'reach');
-  const fbImpIns = fbIns.find(i => i.name === 'page_impressions_unique');
-  const fbEngIns = fbIns.find(i => i.name === 'page_post_engagements');
+  const igReach = igReachIns?.values?.[igReachIns.values.length - 1]?.value || 0;
 
-  // IG interactions usan total_value en vez de values[]
+  // Calcular crecimiento de alcance comparando los dos valores de days_28
+  const igReachPrev = igReachIns?.values?.[0]?.value || 0;
+  const igReachGrowth = igReachPrev > 0 ? parseFloat(((igReach - igReachPrev) / igReachPrev * 100).toFixed(1)) : 0;
+
   function getTotalValue(interactions, name) {
     const m = interactions.find(i => i.name === name);
     return m?.total_value?.value || 0;
@@ -1693,13 +1659,22 @@ async function fetchMetrics() {
   const igSaves = getTotalValue(igInter, 'saves');
   const igShares = getTotalValue(igInter, 'shares');
 
+  // Actualizar label de fechas en el topbar
+  if (data.dateLabel) {
+    const periodLabel = currentPeriod===7?'Última semana':currentPeriod===28?'Últimos 28 días':'Últimos 90 días';
+    document.getElementById('dateRange').innerHTML = `${periodLabel} · <span style="color:var(--gray-400)">${data.dateLabel}</span> · Actualizado a las <span id="updateTime">${new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})}</span>`;
+  }
+
   LIVE_METRICS = {
     ig: {
       followers: ig.info.followers_count || 0,
       followersGrowth: 0,
-      reach30: sumIns(igIns, 'reach') || 0,
-      reachGrowth: calcGrowth(igReachIns?.values),
-      impressions30: 0,
+      newFollowers: ig.newFollowers || 0,
+      unfollowers: ig.unfollowers || 0,
+      reach30: igReach,
+      reachGrowth: igReachGrowth,
+      views: ig.views || 0,
+      impressions30: ig.views || 0,
       impGrowth: 0,
       likes: igLikes,
       comments: igComments,
@@ -1710,12 +1685,12 @@ async function fetchMetrics() {
     fb: {
       followers: fb.info.fan_count || 0,
       followersGrowth: 0,
-      reach30: sumIns(fbIns, 'page_impressions_unique') || 0,
-      reachGrowth: calcGrowth(fbImpIns?.values),
-      impressions30: sumIns(fbIns, 'page_post_engagements') || 0,
-      impGrowth: calcGrowth(fbEngIns?.values),
+      reach30: 0,
+      reachGrowth: 0,
+      impressions30: 0,
+      impGrowth: 0,
       likes: 0, comments: 0, saves: 0, shares: 0,
-      insightsByDay: { reach: fbImpIns?.values || [], impressions: fbEngIns?.values || [] }
+      insightsByDay: { reach: [], impressions: [] }
     }
   };
 }
@@ -1793,15 +1768,17 @@ function renderMetrics() {
   const d = getData();
   if (!d) { document.getElementById('metricsGrid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--gray-400);padding:2rem;font-size:13px">Cargando métricas...</div>'; return; }
   const interactions = (d.likes||0) + (d.comments||0) + (d.saves||0) + (d.shares||0);
+  const ig = LIVE_METRICS?.ig;
+
   const cards = [
-    { label:'Alcance orgánico', value: fmt(d.reach30), delta: fmtPct(d.reachGrowth), up: d.reachGrowth >= 0, sub: 'vs. período anterior', accent:'' },
-    { label:'Impresiones', value: fmt(d.impressions30), delta: fmtPct(d.impGrowth), up: d.impGrowth >= 0, sub: 'vs. período anterior', accent:'blue' },
-    { label:'Seguidores', value: fmt(d.followers), delta: fmtPct(d.followersGrowth), up: d.followersGrowth >= 0, sub: 'total acumulado', accent:'green' },
-    { label:'Interacciones', value: fmt(interactions), delta: '+12.3%', up: true, sub: 'likes + comentarios + guardados', accent:'amber' },
-    { label:'Likes', value: fmt(d.likes), delta: '+8.1%', up: true, sub: '', accent:'' },
-    { label:'Comentarios', value: fmt(d.comments), delta: '+5.4%', up: true, sub: '', accent:'blue' },
-    { label:'Guardados', value: fmt(d.saves), delta: '+18.2%', up: true, sub: '', accent:'green' },
-    { label:'Engagement rate', value: d.er.toFixed(2)+'%', delta: fmtPct(d.erGrowth), up: d.erGrowth >= 0, sub: 'promedio', accent:'amber' },
+    { label:'Alcance', value: fmt(d.reach30), delta: fmtPct(d.reachGrowth), up: d.reachGrowth >= 0, sub: 'Personas únicas · 28 días', accent:'' },
+    { label:'Visualizaciones', value: fmt(ig?.views||0), delta: '', up: true, sub: 'Views de posts, reels e historias', accent:'blue' },
+    { label:'Seguidores', value: fmt(d.followers), delta: '', up: true, sub: 'Total acumulado', accent:'green' },
+    { label:'Seguidores nuevos', value: fmt(ig?.newFollowers||0), delta: ig?.unfollowers ? `↓ ${fmt(ig.unfollowers)} bajas` : '', up: true, sub: 'Netos en el período', accent:'green' },
+    { label:'Likes', value: fmt(d.likes), delta: '', up: true, sub: '', accent:'' },
+    { label:'Comentarios', value: fmt(d.comments), delta: '', up: true, sub: '', accent:'blue' },
+    { label:'Guardados', value: fmt(d.saves), delta: '', up: true, sub: '', accent:'green' },
+    { label:'Engagement rate', value: d.reach30 > 0 ? (interactions/d.reach30*100).toFixed(2)+'%' : '—', delta: '', up: true, sub: 'Interacciones / alcance', accent:'amber' },
   ];
   document.getElementById('metricsGrid').innerHTML = cards.map(c => `
     <div class="metric-card">
@@ -1809,7 +1786,7 @@ function renderMetrics() {
       <div class="metric-label">${c.label}</div>
       <div class="metric-value">${c.value}</div>
       <div class="metric-delta ${c.up?'delta-up':'delta-down'}">
-        ${c.up ? '↑' : '↓'} ${c.delta}
+        ${c.delta ? c.delta : ''}
         <span class="metric-sub">${c.sub}</span>
       </div>
     </div>
@@ -2108,13 +2085,24 @@ function renderAds() {
               ${hierMetrics(adset)}
             </div>
             <div class="hier-adset-children" id="adset-${ci}-${ai}">
-              ${(adset.ads || []).map(ad => `
+              ${(adset.ads || []).map(ad => {
+                const igUrl = ad.creative?.effective_instagram_media_id ? `https://www.instagram.com/p/${ad.creative.effective_instagram_media_id}/` : '';
+                const isVideo = !!ad.creative?.video_id;
+                const thumb = ad.creative?.thumbnail_url || '';
+                return `
                 <div class="hier-ad-row">
-                  ${ad.creative?.thumbnail_url ? `<img class="hier-ad-thumb" src="${ad.creative.thumbnail_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : `<div class="hier-ad-thumb"></div>`}
-                  <span class="hier-ad-name">${ad.ad_name}</span>
+                  ${thumb ? 
+                    `<div style="position:relative;flex-shrink:0">
+                      <img class="hier-ad-thumb" src="${thumb}" alt="" loading="lazy" onerror="this.style.display='none'">
+                      ${isVideo ? `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:16px;height:16px;background:rgba(0,0,0,0.6);border-radius:50%;display:flex;align-items:center;justify-content:center"><svg width="8" height="8" viewBox="0 0 24 24" fill="white"><polygon points="8,5 19,12 8,19"/></svg></div>` : ''}
+                    </div>` : 
+                    `<div class="hier-ad-thumb" style="display:flex;align-items:center;justify-content:center;background:var(--gray-200)">
+                      ${isVideo ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2"><polygon points="8,5 19,12 8,19"/></svg>` : ''}
+                    </div>`}
+                  <span class="hier-ad-name">${ad.ad_name}${igUrl ? ` <a href="${igUrl}" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none">↗</a>` : ''}</span>
                   ${hierMetrics(ad)}
-                </div>
-              `).join('')}
+                </div>`;
+              }).join('')}
             </div>
           </div>
         `).join('')}
@@ -2149,12 +2137,37 @@ function renderAds() {
 
   // Top ads creatives
   document.getElementById('adsCreativesGrid').innerHTML = (topAds || []).map(ad=>{
-    const thumb = ad.creative?.thumbnail_url||'';
+    const thumb = ad.creative?.thumbnail_url || '';
+    const igMediaId = ad.creative?.effective_instagram_media_id || '';
+    const isVideo = ad.creative?.video_id || false;
+    const igUrl = igMediaId ? `https://www.instagram.com/p/${igMediaId}/` : '';
     const likes = getAction(ad.actions,'post_reaction');
     const comments = getAction(ad.actions,'comment');
     const videoViews = getAction(ad.actions,'video_view');
+
+    let thumbHtml;
+    if (isVideo && !thumb) {
+      // Video sin thumbnail: mostrar placeholder con botón a Instagram
+      thumbHtml = `
+        <div class="ad-thumb" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:var(--gray-100);aspect-ratio:16/9">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polygon points="10,8 16,12 10,16" fill="var(--gray-400)" stroke="none"/></svg>
+          <span style="font-size:11px;color:var(--gray-400)">Video</span>
+          ${igUrl ? `<a href="${igUrl}" target="_blank" style="font-size:11px;color:var(--blue);text-decoration:none;background:var(--blue-light);padding:3px 10px;border-radius:99px">Ver en Instagram ↗</a>` : ''}
+        </div>`;
+    } else if (thumb) {
+      // Tiene thumbnail: mostrar imagen con ícono de play si es video y link a IG
+      thumbHtml = `
+        <div style="position:relative">
+          <img class="ad-thumb" src="${thumb}" alt="Creativo" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'ad-thumb\\' style=\\'display:flex;align-items:center;justify-content:center;background:var(--gray-100);font-size:12px;color:var(--gray-400)\\'>Sin imagen</div>'">
+          ${isVideo ? `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:40px;height:40px;background:rgba(0,0,0,0.6);border-radius:50%;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="white"><polygon points="8,5 19,12 8,19"/></svg></div>` : ''}
+          ${igUrl ? `<a href="${igUrl}" target="_blank" style="position:absolute;bottom:8px;right:8px;font-size:10px;color:white;background:rgba(0,0,0,0.7);padding:3px 8px;border-radius:99px;text-decoration:none">Ver en IG ↗</a>` : ''}
+        </div>`;
+    } else {
+      thumbHtml = `<div class="ad-thumb" style="display:flex;align-items:center;justify-content:center;color:var(--gray-400);font-size:12px;aspect-ratio:16/9">Sin imagen</div>`;
+    }
+
     return `<div class="ad-card">
-      ${thumb?`<img class="ad-thumb" src="${thumb}" alt="Creativo" loading="lazy" onerror="this.style.background='var(--gray-100)';this.style.display='none'">`:`<div class="ad-thumb" style="display:flex;align-items:center;justify-content:center;color:var(--gray-400);font-size:12px;aspect-ratio:16/9">Sin imagen</div>`}
+      ${thumbHtml}
       <div class="ad-body">
         <div class="ad-campaign">${ad.campaign_name}</div>
         <div class="ad-name">${ad.creative?.body||ad.ad_name}</div>
@@ -2182,6 +2195,7 @@ function toggleHier(id) {
 // INIT
 // ============================================================
 document.getElementById('updateTime').textContent = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+updateOrgDateLabel(28);
 
 // Carga inicial desde API
 (async () => {
