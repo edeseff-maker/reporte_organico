@@ -283,7 +283,7 @@
   /* METRIC CARDS */
   .metrics-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 14px;
     margin-bottom: 24px;
   }
@@ -1674,21 +1674,21 @@ async function fetchMetrics() {
       reach30: igReach,
       reachGrowth: igReachGrowth,
       views: ig.views || 0,
+      totalInteractions: ig.totalInteractions || 0,
       impressions30: ig.views || 0,
       impGrowth: 0,
-      likes: igLikes,
-      comments: igComments,
-      saves: igSaves,
-      shares: igShares,
+      likes: getTotalValue(igInter, 'likes'),
+      comments: getTotalValue(igInter, 'comments'),
+      saves: getTotalValue(igInter, 'saves'),
+      shares: getTotalValue(igInter, 'shares'),
+      breakdown: ig.breakdown || null,
       insightsByDay: { reach: igReachIns?.values || [], impressions: [] }
     },
     fb: {
       followers: fb.info.fan_count || 0,
       followersGrowth: 0,
-      reach30: 0,
-      reachGrowth: 0,
-      impressions30: 0,
-      impGrowth: 0,
+      reach30: 0, reachGrowth: 0,
+      impressions30: 0, impGrowth: 0,
       likes: 0, comments: 0, saves: 0, shares: 0,
       insightsByDay: { reach: [], impressions: [] }
     }
@@ -1767,30 +1767,57 @@ function getData() {
 function renderMetrics() {
   const d = getData();
   if (!d) { document.getElementById('metricsGrid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--gray-400);padding:2rem;font-size:13px">Cargando métricas...</div>'; return; }
-  const interactions = (d.likes||0) + (d.comments||0) + (d.saves||0) + (d.shares||0);
   const ig = LIVE_METRICS?.ig;
+  const bd = ig?.breakdown;
 
-  const cards = [
-    { label:'Alcance', value: fmt(d.reach30), delta: fmtPct(d.reachGrowth), up: d.reachGrowth >= 0, sub: 'Personas únicas · 28 días', accent:'' },
-    { label:'Visualizaciones', value: fmt(ig?.views||0), delta: '', up: true, sub: 'Views de posts, reels e historias', accent:'blue' },
-    { label:'Seguidores', value: fmt(d.followers), delta: '', up: true, sub: 'Total acumulado', accent:'green' },
-    { label:'Seguidores nuevos', value: fmt(ig?.newFollowers||0), delta: ig?.unfollowers ? `↓ ${fmt(ig.unfollowers)} bajas` : '', up: true, sub: 'Netos en el período', accent:'green' },
-    { label:'Likes', value: fmt(d.likes), delta: '', up: true, sub: '', accent:'' },
-    { label:'Comentarios', value: fmt(d.comments), delta: '', up: true, sub: '', accent:'blue' },
-    { label:'Guardados', value: fmt(d.saves), delta: '', up: true, sub: '', accent:'green' },
-    { label:'Engagement rate', value: d.reach30 > 0 ? (interactions/d.reach30*100).toFixed(2)+'%' : '—', delta: '', up: true, sub: 'Interacciones / alcance', accent:'amber' },
-  ];
-  document.getElementById('metricsGrid').innerHTML = cards.map(c => `
-    <div class="metric-card">
-      <div class="metric-card-accent ${c.accent}"></div>
-      <div class="metric-label">${c.label}</div>
-      <div class="metric-value">${c.value}</div>
-      <div class="metric-delta ${c.up?'delta-up':'delta-down'}">
-        ${c.delta ? c.delta : ''}
-        <span class="metric-sub">${c.sub}</span>
-      </div>
-    </div>
-  `).join('');
+  // ER calculado con métricas totales (orgánico + pago)
+  const totalInt = ig?.totalInteractions || 0;
+  const totalReach = ig?.reach30 || 0;
+  const er = totalReach > 0 ? (totalInt / totalReach * 100).toFixed(2) : '—';
+
+  function breakdownRow(label, data) {
+    if (!data) return '';
+    const orgVal = (data.post||0) + (data.reel||0);
+    return `
+      <div style="margin-top:8px;border-top:1px solid var(--gray-100);padding-top:8px;font-size:11px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+          <span style="color:var(--green)">● Orgánico</span><span style="font-family:var(--mono);font-weight:600">${fmt(orgVal)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px;padding-left:12px">
+          <span style="color:var(--gray-400)">Post</span><span style="font-family:var(--mono)">${fmt(data.post||0)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px;padding-left:12px">
+          <span style="color:var(--gray-400)">Reel</span><span style="font-family:var(--mono)">${fmt(data.reel||0)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:3px">
+          <span style="color:var(--red)">● Pago</span><span style="font-family:var(--mono);font-weight:600">${fmt(data.ad||0)}</span>
+        </div>
+      </div>`;
+  }
+
+  function expandCard(id, label, value, sub, accent, bdData, note) {
+    return `
+    <div class="metric-card" style="cursor:${bdData?'pointer':'default'}" onclick="${bdData?`toggleMetricBreakdown('exp-${id}', this)`:''}" >
+      <div class="metric-card-accent ${accent}"></div>
+      <div class="metric-label">${label}${note ? `<span style="font-size:9px;color:var(--amber);margin-left:4px;font-weight:600">${note}</span>` : ''}</div>
+      <div class="metric-value">${value}</div>
+      <div style="font-size:11px;color:var(--gray-400);margin-top:4px">${sub}${bdData ? ' · <span style="color:var(--blue)">Desglose ↓</span>' : ''}</div>
+      ${bdData ? `<div id="exp-${id}" style="display:none">${breakdownRow(label, bdData)}</div>` : ''}
+    </div>`;
+  }
+
+  document.getElementById('metricsGrid').innerHTML = [
+    expandCard('reach', 'Alcance', fmt(totalReach), 'Personas únicas · orgánico + pago', '', null, '★ Total'),
+    expandCard('views', 'Visualizaciones', fmt(ig?.views||0), 'Posts, reels e historias · orgánico + pago', 'blue', null, '★ Total'),
+    expandCard('totalint', 'Interacciones', fmt(totalInt), 'Orgánico + promocionado', 'amber', null, '★ Total'),
+    expandCard('er', 'Engagement rate', er === '—' ? '—' : er + '%', 'Interacciones totales / alcance total', 'amber', null, null),
+    expandCard('followers', 'Seguidores', fmt(ig?.followers||0), 'Total acumulado', 'green', null, null),
+    expandCard('newfoll', 'Seguidores nuevos', fmt(ig?.newFollowers||0), ig?.unfollowers ? `↓ ${fmt(ig.unfollowers)} bajas` : 'Período seleccionado', 'green', null, null),
+    expandCard('likes', 'Likes', fmt(ig?.likes||0), 'Orgánico', '', bd?.likes, null),
+    expandCard('comments', 'Comentarios', fmt(ig?.comments||0), 'Orgánico', 'blue', bd?.comments, null),
+    expandCard('saves', 'Guardados', fmt(ig?.saves||0), 'Orgánico', 'green', bd?.saves, null),
+    expandCard('shares', 'Compartidos', fmt(ig?.shares||0), 'Orgánico', '', bd?.shares, null),
+  ].join('');
 }
 
 // ============================================================
