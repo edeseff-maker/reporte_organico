@@ -1128,11 +1128,7 @@
 
   <!-- PLATFORM TABS -->
   <div class="platform-tabs">
-    <button class="platform-tab active-both" id="tab-both" onclick="setPlat('both',this)">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
-      Ambas plataformas
-    </button>
-    <button class="platform-tab" id="tab-ig" onclick="setPlat('ig',this)">
+    <button class="platform-tab active-ig" id="tab-ig" onclick="setPlat('ig',this)">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.5" fill="currentColor"/></svg>
       Instagram
     </button>
@@ -1150,15 +1146,11 @@
     <div class="chart-card">
       <div class="chart-header">
         <div>
-          <div class="chart-title">Alcance e impresiones</div>
-          <div class="chart-subtitle">Evolución diaria orgánica</div>
-        </div>
-        <div class="chart-legend">
-          <div class="legend-item"><span class="legend-dot" style="background:#E61C24"></span>Alcance</div>
-          <div class="legend-item"><span class="legend-dot" style="background:#A8A6A0;border-top:2px dashed #A8A6A0;height:2px;width:16px;border-radius:0"></span>Impresiones</div>
+          <div class="chart-title">Engagement por tipo</div>
+          <div class="chart-subtitle">ER promedio por formato</div>
         </div>
       </div>
-      <div class="chart-wrap"><canvas id="reachChart" role="img" aria-label="Evolución de alcance e impresiones diario">Gráfico de líneas.</canvas></div>
+      <div style="position:relative;height:220px"><canvas id="typeChart" role="img" aria-label="Engagement por tipo de contenido">Barras de engagement.</canvas></div>
     </div>
     <div class="chart-card">
       <div class="chart-header">
@@ -1173,6 +1165,30 @@
       </div>
       <div style="position:relative;height:180px"><canvas id="platChart" role="img" aria-label="Distribución de alcance por plataforma">Gráfico de dona.</canvas></div>
     </div>
+  </div>
+
+  <!-- DEMOGRAPHICS -->
+  <div class="bottom-row" style="margin-bottom:24px">
+    <div class="chart-card">
+      <div class="section-title">Audiencia por edad</div>
+      <div class="section-subtitle" style="margin-bottom:16px">Distribución de seguidores</div>
+      <div id="demoAge" class="audience-row"></div>
+    </div>
+    <div class="chart-card">
+      <div class="section-title">Género</div>
+      <div class="section-subtitle" style="margin-bottom:16px">Distribución de seguidores</div>
+      <div id="demoGender" class="audience-row"></div>
+      <div class="section-title" style="margin-top:20px">Top ciudades</div>
+      <div class="section-subtitle" style="margin-bottom:12px">Por cantidad de seguidores</div>
+      <div id="demoCity" class="audience-row"></div>
+    </div>
+  </div>
+
+  <!-- TOP COUNTRIES -->
+  <div class="chart-card" style="margin-bottom:24px">
+    <div class="section-title">Top países</div>
+    <div class="section-subtitle" style="margin-bottom:16px">Seguidores por país</div>
+    <div id="demoCountry" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px"></div>
   </div>
 
   <!-- MINI CHARTS ROW -->
@@ -1305,7 +1321,7 @@ let CONTENT_TYPES = [
 ];
 
 let currentPeriod = 28;
-let currentPlat = 'both';
+let currentPlat = 'ig';
 let currentUnifiedPlat = 'both';
 let currentSection = 'organic';
 let currentAdsPreset = 'last_28d';
@@ -1682,6 +1698,8 @@ async function fetchMetrics() {
       saves: getTotalValue(igInter, 'saves'),
       shares: getTotalValue(igInter, 'shares'),
       breakdown: ig.breakdown || null,
+      growth: ig.growth || {},
+      demographics: ig.demographics || null,
       insightsByDay: { reach: igReachIns?.values || [], impressions: [] }
     },
     fb: {
@@ -1769,13 +1787,20 @@ function renderMetrics() {
   if (!d) { document.getElementById('metricsGrid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--gray-400);padding:2rem;font-size:13px">Cargando métricas...</div>'; return; }
   const ig = LIVE_METRICS?.ig;
   const bd = ig?.breakdown;
+  const gr = ig?.growth || {};
 
-  // ER calculado con métricas totales (orgánico + pago)
   const totalInt = ig?.totalInteractions || 0;
   const totalReach = ig?.reach30 || 0;
   const er = totalReach > 0 ? (totalInt / totalReach * 100).toFixed(2) : '—';
 
-  function breakdownRow(label, data) {
+  function growthBadge(pct) {
+    if (pct === null || pct === undefined) return '';
+    const up = pct >= 0;
+    const color = up ? 'var(--green)' : 'var(--red)';
+    return `<span style="font-size:11px;color:${color};font-weight:500">${up?'↑':'↓'} ${Math.abs(pct).toFixed(1)}% vs período anterior</span>`;
+  }
+
+  function breakdownRow(data) {
     if (!data) return '';
     const orgVal = (data.post||0) + (data.reel||0);
     return `
@@ -1783,81 +1808,108 @@ function renderMetrics() {
         <div style="display:flex;justify-content:space-between;margin-bottom:3px">
           <span style="color:var(--green)">● Orgánico</span><span style="font-family:var(--mono);font-weight:600">${fmt(orgVal)}</span>
         </div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:3px;padding-left:12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:2px;padding-left:12px">
           <span style="color:var(--gray-400)">Post</span><span style="font-family:var(--mono)">${fmt(data.post||0)}</span>
         </div>
         <div style="display:flex;justify-content:space-between;margin-bottom:3px;padding-left:12px">
           <span style="color:var(--gray-400)">Reel</span><span style="font-family:var(--mono)">${fmt(data.reel||0)}</span>
         </div>
-        <div style="display:flex;justify-content:space-between;margin-top:3px">
+        <div style="display:flex;justify-content:space-between">
           <span style="color:var(--red)">● Pago</span><span style="font-family:var(--mono);font-weight:600">${fmt(data.ad||0)}</span>
         </div>
       </div>`;
   }
 
-  function expandCard(id, label, value, sub, accent, bdData, note) {
+  function expandCard(id, label, value, sub, accent, bdData, growthPct, note) {
     return `
-    <div class="metric-card" style="cursor:${bdData?'pointer':'default'}" onclick="${bdData?`toggleMetricBreakdown('exp-${id}', this)`:''}" >
+    <div class="metric-card" style="cursor:${bdData?'pointer':'default'}" onclick="${bdData?`toggleMetricBreakdown('exp-${id}', this)`:''}">
       <div class="metric-card-accent ${accent}"></div>
       <div class="metric-label">${label}${note ? `<span style="font-size:9px;color:var(--amber);margin-left:4px;font-weight:600">${note}</span>` : ''}</div>
       <div class="metric-value">${value}</div>
-      <div style="font-size:11px;color:var(--gray-400);margin-top:4px">${sub}${bdData ? ' · <span style="color:var(--blue)">Desglose ↓</span>' : ''}</div>
-      ${bdData ? `<div id="exp-${id}" style="display:none">${breakdownRow(label, bdData)}</div>` : ''}
+      <div style="font-size:11px;color:var(--gray-400);margin-top:4px;margin-bottom:${growthPct!==undefined?'4px':'0'}">${sub}${bdData ? ' · <span style="color:var(--blue)">Desglose ↓</span>' : ''}</div>
+      ${growthPct !== undefined && growthPct !== null ? `<div>${growthBadge(growthPct)}</div>` : ''}
+      ${bdData ? `<div id="exp-${id}" style="display:none">${breakdownRow(bdData)}</div>` : ''}
     </div>`;
   }
 
   document.getElementById('metricsGrid').innerHTML = [
-    expandCard('reach', 'Alcance', fmt(totalReach), 'Personas únicas · orgánico + pago', '', null, '★ Total'),
-    expandCard('views', 'Visualizaciones', fmt(ig?.views||0), 'Posts, reels e historias · orgánico + pago', 'blue', null, '★ Total'),
-    expandCard('totalint', 'Interacciones', fmt(totalInt), 'Orgánico + promocionado', 'amber', null, '★ Total'),
-    expandCard('er', 'Engagement rate', er === '—' ? '—' : er + '%', 'Interacciones totales / alcance total', 'amber', null, null),
-    expandCard('followers', 'Seguidores', fmt(ig?.followers||0), 'Total acumulado', 'green', null, null),
-    expandCard('newfoll', 'Seguidores nuevos', fmt(ig?.newFollowers||0), ig?.unfollowers ? `↓ ${fmt(ig.unfollowers)} bajas` : 'Período seleccionado', 'green', null, null),
-    expandCard('likes', 'Likes', fmt(ig?.likes||0), 'Orgánico', '', bd?.likes, null),
-    expandCard('comments', 'Comentarios', fmt(ig?.comments||0), 'Orgánico', 'blue', bd?.comments, null),
-    expandCard('saves', 'Guardados', fmt(ig?.saves||0), 'Orgánico', 'green', bd?.saves, null),
-    expandCard('shares', 'Compartidos', fmt(ig?.shares||0), 'Orgánico', '', bd?.shares, null),
+    expandCard('reach', 'Alcance', fmt(totalReach), 'Personas únicas · orgánico + pago', '', null, gr.reach, '★ Total'),
+    expandCard('views', 'Visualizaciones', fmt(ig?.views||0), 'Posts, reels e historias · orgánico + pago', 'blue', null, gr.views, '★ Total'),
+    expandCard('totalint', 'Interacciones', fmt(totalInt), 'Orgánico + promocionado', 'amber', null, gr.totalInteractions, '★ Total'),
+    expandCard('er', 'Engagement rate', er === '—' ? '—' : er + '%', 'Interacciones totales / alcance total', 'amber', null, undefined, null),
+    expandCard('followers', 'Seguidores', fmt(ig?.followers||0), 'Total acumulado', 'green', null, undefined, null),
+    expandCard('newfoll', 'Seguidores nuevos', fmt(ig?.newFollowers||0), ig?.unfollowers ? `↓ ${fmt(ig.unfollowers)} bajas` : 'Período seleccionado', 'green', null, undefined, null),
+    expandCard('likes', 'Likes', fmt(ig?.likes||0), 'Orgánico', '', bd?.likes, gr.likes, null),
+    expandCard('comments', 'Comentarios', fmt(ig?.comments||0), 'Orgánico', 'blue', bd?.comments, gr.comments, null),
+    expandCard('saves', 'Guardados', fmt(ig?.saves||0), 'Orgánico', 'green', bd?.saves, gr.saves, null),
+    expandCard('shares', 'Compartidos', fmt(ig?.shares||0), 'Orgánico', '', bd?.shares, gr.shares, null),
   ].join('');
 }
 
 // ============================================================
-// REACH CHART
+// DEMOGRAPHICS
 // ============================================================
-function renderReachChart() {
-  if (!LIVE_METRICS) return;
-  const ig = LIVE_METRICS.ig, fb = LIVE_METRICS.fb;
-  const rByD = {}, iByD = {};
+function renderDemographics() {
+  const demo = LIVE_METRICS?.ig?.demographics;
+  if (!demo) return;
 
-  if (currentPlat !== 'fb') {
-    ig.insightsByDay.reach.forEach(v => { const d=v.end_time?.slice(0,10)||''; rByD[d]=(rByD[d]||0)+v.value; });
-    ig.insightsByDay.impressions.forEach(v => { const d=v.end_time?.slice(0,10)||''; iByD[d]=(iByD[d]||0)+v.value; });
+  const total = demo.age.reduce((a, r) => a + r.value, 0) || 1;
+
+  function barRow(label, value, color) {
+    const pct = ((value / total) * 100).toFixed(1);
+    return `<div class="audience-item">
+      <div class="audience-label" style="width:100px">${label}</div>
+      <div class="audience-bar-wrap"><div class="audience-bar" style="width:${pct}%;background:${color}"></div></div>
+      <div class="audience-pct">${pct}%</div>
+    </div>`;
   }
-  if (currentPlat !== 'ig') {
-    fb.insightsByDay.reach.forEach(v => { const d=v.end_time?.slice(0,10)||''; rByD[d]=(rByD[d]||0)+v.value; });
-    fb.insightsByDay.impressions.forEach(v => { const d=v.end_time?.slice(0,10)||''; iByD[d]=(iByD[d]||0)+v.value; });
-  }
 
-  const labels = Object.keys(rByD).sort();
-  const reachVals = labels.map(d=>rByD[d]||0);
-  const impVals = labels.map(d=>iByD[d]||0);
+  // Edad
+  const ageColors = ['#E61C24','#C13584','#1877F2','#1A7A4A','#C47A15','#7C3AED','#A8A6A0'];
+  document.getElementById('demoAge').innerHTML = demo.age.map((r,i) => barRow(r.label, r.value, ageColors[i%ageColors.length])).join('');
 
-  if(reachChartInst) reachChartInst.destroy();
-  reachChartInst = new Chart(document.getElementById('reachChart'),{
-    type:'line',
-    data:{ labels, datasets:[
-      { label:'Alcance', data:reachVals, borderColor:'#E61C24', backgroundColor:'rgba(230,28,36,0.06)', tension:0.4, fill:true, pointRadius:0, borderWidth:2, borderDash:[] },
-      { label:'Impresiones', data:impVals, borderColor:'#A8A6A0', backgroundColor:'transparent', tension:0.4, fill:false, pointRadius:0, borderWidth:1.5, borderDash:[5,4] }
-    ]},
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ display:false }, tooltip:{ mode:'index', intersect:false, callbacks:{ label: ctx => ctx.dataset.label+': '+fmt(ctx.raw) } } },
-      scales:{
-        x:{ grid:{ display:false }, ticks:{ maxTicksLimit:8, font:{ size:11, family:'DM Mono' }, color:'#A8A6A0' } },
-        y:{ grid:{ color:'rgba(0,0,0,0.04)' }, ticks:{ font:{ size:11, family:'DM Mono' }, color:'#A8A6A0', callback: v => fmt(v) } }
-      }
-    }
-  });
+  // Género
+  const genderTotal = demo.gender.reduce((a,r) => a+r.value, 0) || 1;
+  const genderLabels = { F: 'Femenino', M: 'Masculino', U: 'No especificado' };
+  const genderColors = { F: '#C13584', M: '#1877F2', U: '#A8A6A0' };
+  document.getElementById('demoGender').innerHTML = demo.gender.map(r => {
+    const pct = ((r.value / genderTotal) * 100).toFixed(1);
+    return `<div class="audience-item">
+      <div class="audience-label" style="width:130px">${genderLabels[r.label]||r.label}</div>
+      <div class="audience-bar-wrap"><div class="audience-bar" style="width:${pct}%;background:${genderColors[r.label]||'var(--gray-400)'}"></div></div>
+      <div class="audience-pct">${pct}%</div>
+    </div>`;
+  }).join('');
+
+  // Ciudades
+  const cityTotal = demo.city.reduce((a,r) => a+r.value, 0) || 1;
+  document.getElementById('demoCity').innerHTML = demo.city.slice(0,8).map(r => {
+    const pct = ((r.value / cityTotal) * 100).toFixed(1);
+    return `<div class="audience-item">
+      <div class="audience-label" style="width:180px;font-size:11px">${r.label}</div>
+      <div class="audience-bar-wrap"><div class="audience-bar" style="width:${pct}%;background:var(--red)"></div></div>
+      <div class="audience-pct">${fmt(r.value)}</div>
+    </div>`;
+  }).join('');
+
+  // Países
+  const countryNames = { AR:'Argentina', MX:'México', VE:'Venezuela', CO:'Colombia', CL:'Chile', BR:'Brasil', UY:'Uruguay', US:'EE.UU.', ES:'España', PY:'Paraguay', TW:'Taiwán', PE:'Perú', EC:'Ecuador', CR:'Costa Rica', PA:'Panamá' };
+  const countryTotal = demo.country.reduce((a,r) => a+r.value, 0) || 1;
+  document.getElementById('demoCountry').innerHTML = demo.country.slice(0,10).map(r => {
+    const pct = ((r.value / countryTotal) * 100).toFixed(1);
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--gray-100)">
+      <span style="font-size:13px;width:24px;text-align:center">${r.label}</span>
+      <span style="font-size:12px;flex:1;color:var(--gray-800)">${countryNames[r.label]||r.label}</span>
+      <span style="font-size:12px;font-family:var(--mono);font-weight:600">${fmt(r.value)}</span>
+      <span style="font-size:11px;color:var(--gray-400);width:36px;text-align:right">${pct}%</span>
+    </div>`;
+  }).join('');
 }
+
+// ============================================================
+// REACH CHART - kept for reference but not rendered
+// ============================================================
+function renderReachChart() {}
 
 // ============================================================
 // PLATFORM DONUT
@@ -1993,26 +2045,54 @@ function renderContentTable() {
 }
 
 // ============================================================
-// HEATMAP
+// HEATMAP - datos reales
 // ============================================================
+let LIVE_HEATMAP = null;
+
+async function fetchHeatmap() {
+  try {
+    const res = await fetch(`${API}/heatmap`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    LIVE_HEATMAP = data;
+  } catch(e) { console.warn('Heatmap error:', e); }
+}
+
 function renderHeatmap() {
-  const days = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
-  const hours = ['8h','10h','12h','14h','16h','18h','20h','22h'];
-  const heat = [
-    [1,2,3,4,5,4,3],[2,3,5,6,7,8,6],[3,5,8,7,6,9,7],[2,4,6,8,7,8,6],
-    [1,3,5,7,9,8,5],[1,2,4,6,8,9,7],[1,2,3,5,7,8,9],[1,1,2,3,5,6,7]
-  ];
-  const max = 9;
-  let html = `<div style="display:grid;grid-template-columns:32px repeat(7,1fr);gap:3px;font-size:10px">`;
+  const days = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const hours = ['6h','7h','8h','9h','10h','11h','12h','13h','14h','15h','16h','17h','18h','19h','20h','21h','22h','23h'];
+  const hourNums = [6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23];
+
+  if (!LIVE_HEATMAP) {
+    document.getElementById('heatmapWrap').innerHTML = '<div style="font-size:12px;color:var(--gray-400);text-align:center;padding:1rem">Cargando horarios...</div>';
+    return;
+  }
+
+  const { heatmap, topSlots } = LIVE_HEATMAP;
+  const maxEr = Math.max(...heatmap.map(s => s.avgEr), 0.01);
+
+  let html = `<div style="display:grid;grid-template-columns:32px repeat(7,1fr);gap:3px;font-size:10px;margin-bottom:12px">`;
   html += `<div></div>${days.map(d=>`<div style="text-align:center;color:var(--gray-400);margin-bottom:4px">${d}</div>`).join('')}`;
-  hours.forEach((h,hi)=>{
-    html += `<div style="color:var(--gray-400);display:flex;align-items:center">${h}</div>`;
-    heat[hi].forEach((v,di)=>{
-      const opacity = 0.1 + (v/max)*0.9;
-      html += `<div style="aspect-ratio:1;border-radius:3px;background:rgba(230,28,36,${opacity.toFixed(2)});cursor:default" title="${days[di]} ${h}: ER ${v}/9"></div>`;
-    });
+
+  hourNums.forEach((h, hi) => {
+    html += `<div style="color:var(--gray-400);display:flex;align-items:center;font-size:9px">${hours[hi]}</div>`;
+    for (let day = 0; day < 7; day++) {
+      const slot = heatmap.find(s => s.day === day && s.hour === h);
+      const er = slot?.avgEr || 0;
+      const opacity = er > 0 ? 0.15 + (er / maxEr) * 0.85 : 0.05;
+      const isTop = topSlots?.some(s => s.day === day && s.hour === h);
+      html += `<div style="aspect-ratio:1;border-radius:3px;background:rgba(230,28,36,${opacity.toFixed(2)});cursor:default;${isTop?'box-shadow:0 0 0 1.5px var(--red)':''}" title="${days[day]} ${h}h · ER: ${er.toFixed(2)}% · ${slot?.posts||0} posts"></div>`;
+    }
   });
   html += `</div>`;
+
+  // Top slots
+  if (topSlots?.length) {
+    html += `<div style="font-size:11px;color:var(--gray-600);margin-top:4px"><span style="font-weight:500">Mejores slots:</span> `;
+    html += topSlots.map(s => `<span style="background:var(--red-light);color:var(--red-dark);padding:2px 6px;border-radius:4px;margin-right:4px">${days[s.day]} ${s.hour}h (${s.avgEr.toFixed(1)}% ER)</span>`).join('');
+    html += `</div>`;
+  }
+
   document.getElementById('heatmapWrap').innerHTML = html;
 }
 
@@ -2066,6 +2146,7 @@ function renderAll() {
   renderPosts();
   renderContentTable();
   renderHeatmap();
+  renderDemographics();
 }
 
 // ============================================================
@@ -2229,7 +2310,7 @@ updateOrgDateLabel(28);
   const overlay = document.getElementById('loadingOverlay');
   overlay.classList.add('show');
   try {
-    await Promise.all([fetchMetrics(), fetchPosts()]);
+    await Promise.all([fetchMetrics(), fetchPosts(), fetchHeatmap()]);
   } catch(e) {
     console.error('Error inicial:', e);
   } finally {
